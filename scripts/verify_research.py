@@ -55,10 +55,15 @@ def find_response(name):
 
 
 def blocks(text, ids):
-    """Нарезает текст ответа на блоки по идентификаторам."""
+    """Нарезает текст ответа на блоки по заголовкам идентификаторов.
+
+    Считаются только заголовки (начало строки), а не упоминания в шапке файла:
+    иначе перечисление идентификаторов в списке «вопросы пакета» выглядит как
+    отвеченный блок.
+    """
     positions = []
-    for m in ANY_ID_RE.finditer(text):
-        positions.append((m.start(), m.group(0)))
+    for m in ID_RE.finditer(text):
+        positions.append((m.start(), m.group(1)))
     out = {}
     for i, (pos, qid) in enumerate(positions):
         end = positions[i + 1][0] if i + 1 < len(positions) else len(text)
@@ -102,7 +107,7 @@ def main():
                 continue
 
             resp_text = read(resp_path)
-            resp_ids = list(dict.fromkeys(ANY_ID_RE.findall(resp_text)))
+            resp_ids = list(dict.fromkeys([m.group(1) for m in ID_RE.finditer(resp_text)]))
             bl = blocks(resp_text, resp_ids)
 
             missing = [q for q in req_ids if q not in resp_ids]
