@@ -7,6 +7,7 @@
 | Шаблон | Кто заполняет в основном | Куда копируется |
 |---|---|---|
 | `profile.md` | агент из базы и из ответов человека | `workspace/profile.md` |
+| `state.md` | агент ведёт, статусы артефакта подтверждает человек | `workspace/state.md` |
 | `activity-map.md` | агент по данным замера, человек подтверждает | `workspace/activity-map.md` |
 | `assumptions.md` | агент предлагает, человек утверждает условие смерти | `workspace/assumptions.md` |
 | `interview.md` | агент размечает после разговора | `workspace/interviews/` |
