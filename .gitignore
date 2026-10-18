@@ -1,0 +1,9 @@
+# Данные конкретного человека не попадают в публичную историю
+workspace/*
+!workspace/README.md
+
+# Служебное
+.DS_Store
+*.log
+node_modules/
+.env
