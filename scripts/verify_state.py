@@ -3,17 +3,15 @@
 """Статус запросов: что отвечено, что нет, где лежит ответ.
 
 Зачем: ответы копились в отдельной папке, и по запросу нельзя было понять,
-пришёл ли ответ. Теперь каждый запрос несёт строку состояния, которая
-сверяется с диском, а отработанные запросы переносятся в архив.
+пришёл ли ответ. Теперь каждый запрос несёт строку состояния, она сверяется
+с диском, а отработанные пары переносятся в архив.
 
 Что делает:
 
-1. Читает все запросы проекта и их ответы.
-2. Сверяет строку `**Состояние:**` в запросе с тем, что лежит на диске.
-3. Проверяет, что блоки `### Q1.N` в запросе и в ответе совпадают.
-4. В режиме `--write` переписывает строку состояния во всех запросах.
-5. В режиме `--move` переносит пары «запрос + ответ» в `archive/`,
-   когда строка состояния помечена как `отвечено`.
+1. Читает запросы активной папки и архива, находит ответы к каждому.
+2. Сверяет блоки `### Q1.N` запроса и ответа.
+3. Сверяет строку `**Состояние:**` с тем, что лежит на диске.
+4. `--write` переписывает строки состояния, `--move` переносит полные пары в архив.
 
 Коды возврата: 0 — состояние сходится; 1 — расхождения; 2 — нечего проверять.
 """
@@ -30,8 +28,10 @@ except Exception:
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REQ_DIR = os.path.join(ROOT, "internal", "draft", "requests")
-RESP_DIR = os.path.join(ROOT, "internal", "draft", "responses")
 ARCH_DIR = os.path.join(REQ_DIR, "archive")
+ARCH_ANSWERS = os.path.join(ARCH_DIR, "answers")
+RESP_DIR = os.path.join(ROOT, "internal", "draft", "responses")
+RESP_DIRS = (RESP_DIR, ARCH_ANSWERS)
 STATE_LINE = re.compile(r"^\*\*Состояние:\*\*.*$", re.MULTILINE)
 Q_HEAD = re.compile(r"^### (Q1\.\d+)\.", re.MULTILINE)
 
@@ -41,18 +41,28 @@ def read(path):
         return f.read()
 
 
-def answer_for(name):
-    base = name[:-3]
-    if not os.path.isdir(RESP_DIR):
-        return None
-    for candidate in sorted(os.listdir(RESP_DIR)):
-        if candidate.startswith(base) and candidate.endswith(".md"):
-            return os.path.join(RESP_DIR, candidate)
+def answer_for(base):
+    for directory in RESP_DIRS:
+        if not os.path.isdir(directory):
+            continue
+        for candidate in sorted(os.listdir(directory)):
+            if candidate.startswith(base) and candidate.endswith(".md"):
+                return os.path.join(directory, candidate)
     return None
 
 
-def state_text(total, answered, note):
-    return "**Состояние:** отвечено %d из %d — %s" % (total, answered, note)
+def state_line(answered, total, note):
+    return "**Состояние:** отвечено %d из %d — %s" % (answered, total, note)
+
+
+def pairs():
+    out = []
+    for folder in (REQ_DIR, ARCH_DIR):
+        if not os.path.isdir(folder):
+            continue
+        for name in sorted(f for f in os.listdir(folder) if f.endswith(".md") and f != "README.md"):
+            out.append((folder, name))
+    return out
 
 
 def main():
@@ -64,68 +74,87 @@ def main():
         return 2
 
     problems = []
-    moved = []
-    actions = []
+    updates = []
+    to_move = []
+    archived = 0
 
-    for name in sorted(f for f in os.listdir(REQ_DIR) if f.endswith(".md") and f != "README.md"):
-        req_path = os.path.join(REQ_DIR, name)
+    for folder, name in pairs():
+        in_archive = folder == ARCH_DIR
+        req_path = os.path.join(folder, name)
         req_text = read(req_path)
         req_ids = list(dict.fromkeys(Q_HEAD.findall(req_text)))
         total = len(req_ids)
-        resp_path = answer_for(name)
+        base = name[:-3]
+        resp_path = answer_for(base)
 
         answered = 0
-        note = "ответа нет"
         if resp_path:
-            resp_text = read(resp_path)
-            resp_ids = list(dict.fromkeys(Q_HEAD.findall(resp_text)))
+            resp_ids = list(dict.fromkeys(Q_HEAD.findall(read(resp_path))))
             answered = len([q for q in req_ids if q in resp_ids])
             missing = [q for q in req_ids if q not in resp_ids]
             extra = [q for q in resp_ids if q not in req_ids]
             if missing:
-                note = "нет ответа по %s" % ", ".join(missing)
                 problems.append("%s: в ответе нет блоков %s" % (name, ", ".join(missing)))
-            elif extra:
-                note = "в ответе лишние блоки %s" % ", ".join(extra)
+            if extra:
                 problems.append("%s: в ответе лишние блоки %s" % (name, ", ".join(extra)))
-            else:
-                note = "архивировать: `%s`" % os.path.relpath(resp_path, ROOT).replace("\\", "/")
+            complete = not missing and not extra and total > 0
+        else:
+            complete = False
 
-        expected = state_text(total, answered, note)
+        if in_archive:
+            archived += 1
+            if not complete:
+                problems.append("%s: лежит в архиве, но полного ответа нет — вернуть в работу" % name)
+            note = "в архиве, ответ рядом: `%s`" % (os.path.basename(resp_path) if resp_path else "нет")
+        elif complete:
+            note = "ответ полный, перенос в архив: `python scripts/verify_state.py --move`"
+            to_move.append((req_path, resp_path, name))
+        elif resp_path:
+            note = "частичный ответ, запрос остаётся в работе"
+        else:
+            note = "ответа нет"
+
+        expected = state_line(answered, total, note)
         current = STATE_LINE.search(req_text)
         if not current:
             problems.append("%s: нет строки «**Состояние:**»" % name)
-            actions.append((req_path, req_text, expected))
-        elif current.group(0).strip() != expected.strip():
+            updates.append((req_path, req_text, expected))
+        elif current.group(0).strip() != expected:
             problems.append("%s: строка состояния устарела" % name)
-            actions.append((req_path, req_text, expected))
+            updates.append((req_path, req_text, expected))
 
-        print("%s: отвечено %d из %d — %s" % (name, answered, total, note))
+        print("%s%s: отвечено %d из %d — %s" % ("[архив] " if in_archive else "", name, answered, total, note))
 
-        if move_mode and resp_path and resp_path and answered == total and not problems:
-            os.makedirs(ARCH_DIR, exist_ok=True)
-            shutil.move(req_path, os.path.join(ARCH_DIR, name))
-            os.makedirs(os.path.join(ARCH_DIR, "answers"), exist_ok=True)
-            shutil.move(resp_path, os.path.join(ARCH_DIR, "answers", os.path.basename(resp_path)))
-            moved.append(name)
-
-    if write_mode and actions:
-        for path, text, expected in actions:
-            new_text = STATE_LINE.sub(expected, text, count=1)
+    if write_mode and updates:
+        for path, text, expected in updates:
             with open(path, "w", encoding="utf-8", newline="\n") as f:
-                f.write(new_text)
-        print("\nстрок состояния обновлено: %d" % len(actions))
+                f.write(STATE_LINE.sub(expected, text, count=1))
+        print("\nстрок состояния обновлено: %d" % len(updates))
 
-    if moved:
-        print("перенесено в архив: %s" % ", ".join(moved))
+    if move_mode and to_move:
+        os.makedirs(ARCH_ANSWERS, exist_ok=True)
+        for req_path, resp_path, name in to_move:
+            target_req = os.path.join(ARCH_DIR, name)
+            shutil.move(req_path, target_req)
+            if resp_path:
+                shutil.move(resp_path, os.path.join(ARCH_ANSWERS, os.path.basename(resp_path)))
+            text = read(target_req)
+            note = "в архиве, ответ рядом: `%s`" % (os.path.basename(resp_path) if resp_path else "нет")
+            answer_text = read(os.path.join(ARCH_ANSWERS, os.path.basename(resp_path))) if resp_path else ""
+            answered = len([q for q in Q_HEAD.findall(text) if q in Q_HEAD.findall(answer_text)])
+            with open(target_req, "w", encoding="utf-8", newline="\n") as f:
+                f.write(STATE_LINE.sub(state_line(answered, len(Q_HEAD.findall(text)), note), text, count=1))
+            print("в архив: %s" % name)
 
-    if problems and not write_mode:
+    remaining = [p for p in problems if not (write_mode and "устарела" in p)]
+    if remaining and not write_mode:
         print("")
-        for line in problems:
+        for line in remaining:
             print("СОСТОЯНИЕ: %s" % line)
         print("\nИТОГ: 1 — состояние расходится; запусти с --write, чтобы обновить строки")
         return 1
-    print("\nИТОГ: 0 — состояние запросов сходится с диском")
+    print("\nзапросов в работе: %d, в архиве: %d" % (len(pairs()) - archived, archived))
+    print("ИТОГ: 0 — состояние сходится с диском")
     return 0
 
 
