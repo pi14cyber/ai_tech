@@ -28,7 +28,8 @@ except Exception:
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REQ_DIR = os.path.join(ROOT, "internal", "draft", "requests")
-FIELDS = ("**Идентификатор:**", "**Дата:**", "**Каналы:**", "**Ответ писать в:**", "**Вопросов:**")
+ARCH_DIR = os.path.join(REQ_DIR, "archive")
+FIELDS = ("**Идентификатор:**", "**Дата:**", "**Каналы:**", "**Ответ писать в:**", "**Вопросов:**", "**Состояние:**")
 SECTIONS = (
     "## 1. Границы",
     "## 2. Вопросы",
@@ -47,14 +48,16 @@ def main():
         print("ИТОГ: 2 — нет папки запросов: %s" % REQ_DIR)
         return 2
 
-    files = [f for f in sorted(os.listdir(REQ_DIR)) if f.endswith(".md") and f != "README.md"]
-    if not files:
+    paths = [os.path.join(REQ_DIR, f) for f in sorted(os.listdir(REQ_DIR)) if f.endswith(".md") and f != "README.md"]
+    if os.path.isdir(ARCH_DIR):
+        paths += [os.path.join(ARCH_DIR, f) for f in sorted(os.listdir(ARCH_DIR)) if f.endswith(".md") and f != "README.md"]
+    if not paths:
         print("ИТОГ: 2 — в папке запросов нет ни одного файла")
         return 2
 
     problems = []
-    for name in files:
-        path = os.path.join(REQ_DIR, name)
+    for path in paths:
+        name = os.path.basename(path)
         with open(path, "r", encoding="utf-8", errors="replace") as f:
             text = f.read()
 
@@ -93,7 +96,7 @@ def main():
         if foreign:
             problems.append("%s: ссылается на другие запросы (%s) — запрос обязан быть самостоятельным" % (name, ", ".join(sorted(foreign))))
 
-    print("проверено запросов: %d" % len(files))
+    print("проверено запросов: %d" % len(paths))
     for line in problems:
         print("СТРУКТУРА: %s" % line)
 

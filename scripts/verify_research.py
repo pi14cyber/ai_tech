@@ -31,7 +31,9 @@ except Exception:
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REQ_DIR = os.path.join(ROOT, "internal", "draft", "requests")
+ARCH_DIR = os.path.join(REQ_DIR, "archive")
 RESP_DIR = os.path.join(ROOT, "internal", "draft", "responses")
+RESP_DIRS = (RESP_DIR, os.path.join(ARCH_DIR, "answers"))
 
 ID_RE = re.compile(r"^(?:#{1,6}\s*)?(?:\*\*)?(?:Вопрос\s*)?(?:`)?(Q\d+\.\d+)\b", re.MULTILINE)
 ANY_ID_RE = re.compile(r"\bQ\d+\.\d+\b")
@@ -46,11 +48,12 @@ def read(path):
 
 
 def find_response(name):
-    if not os.path.isdir(RESP_DIR):
-        return None
-    for candidate in sorted(os.listdir(RESP_DIR)):
-        if candidate.startswith(name) and candidate.endswith(".md"):
-            return os.path.join(RESP_DIR, candidate)
+    for directory in RESP_DIRS:
+        if not os.path.isdir(directory):
+            continue
+        for candidate in sorted(os.listdir(directory)):
+            if candidate.startswith(name) and candidate.endswith(".md"):
+                return os.path.join(directory, candidate)
     return None
 
 
@@ -81,11 +84,13 @@ def main():
     if not os.path.isdir(REQ_DIR):
         broken.append("нет папки запросов: %s" % REQ_DIR)
     else:
-        requests = [f for f in sorted(os.listdir(REQ_DIR)) if f.endswith(".md") and f != "README.md"]
-        if not requests:
+        pairs = [(REQ_DIR, f) for f in sorted(os.listdir(REQ_DIR)) if f.endswith(".md") and f != "README.md"]
+        if os.path.isdir(ARCH_DIR):
+            pairs += [(ARCH_DIR, f) for f in sorted(os.listdir(ARCH_DIR)) if f.endswith(".md") and f != "README.md"]
+        if not pairs:
             broken.append("в папке запросов нет ни одного файла")
-        for name in requests:
-            req_path = os.path.join(REQ_DIR, name)
+        for folder, name in pairs:
+            req_path = os.path.join(folder, name)
             req_text = read(req_path)
             req_ids = [m.group(1) for m in ID_RE.finditer(req_text)]
             if not req_ids:

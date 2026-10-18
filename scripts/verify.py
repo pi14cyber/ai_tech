@@ -24,6 +24,7 @@ CHECKS = (
     ("База знаний", "verify_knowledge.py"),
     ("Внешнее исследование", "verify_research.py"),
     ("Структура запросов", "verify_requests.py"),
+    ("Состояние запросов", "verify_state.py"),
     ("Навыки: шапка и имена", "verify_skills.py"),
     ("Документация и пути", "verify_docs.py"),
     ("Разделение слоёв", "verify_layers.py"),
