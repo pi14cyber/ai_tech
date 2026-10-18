@@ -31,7 +31,7 @@ description: Гейт доказательств перед сборкой. Сч
 4. Если подтверждающих 3 и больше, стадия решения, сигналов 16+ нет → **BUILD AS EXPERIMENT**.
 5. Иначе → **RUN N разговоров**, где `N = max(1, 3 − подтверждающих)`.
 
-Приём счёта взят из `sreshtalluri/mom-test` (`skills/mom-test-gate/SKILL.md`:49-59).
+Приём счёта взят из чужого репозитория `sreshtalluri/mom-test`, навык `skills/mom-test-gate/SKILL.md`:49-59.
 
 ## Форма вывода
 

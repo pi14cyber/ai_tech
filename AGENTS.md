@@ -15,7 +15,7 @@
 
 Файлы `internal/` в этом режиме **не читаются**: это материалы другого проекта, и они не имеют отношения к задаче человека.
 
-**Режим разработки набора или подготовки стрима.** Только по прямому запросу владельца. Тогда дополнительно читаются `internal/draft/00_narrative_map.md`, `01_questionnaire.md`, `02_architecture.md`, `03_pipeline.md`, `04_master_draft.md`, `05_external_research.md`, `06_owner_ideas.md`.
+**Режим разработки набора или подготовки стрима.** Только по прямому запросу владельца. Тогда дополнительно читаются `internal/draft/00_narrative_map.md`, `internal/draft/01_questionnaire.md`, `internal/draft/02_architecture.md`, `internal/draft/03_pipeline.md`, `internal/draft/04_master_draft.md`, `internal/draft/05_external_research.md`, `internal/draft/06_owner_ideas.md`.
 
 Не давать советов, не прочитав состояние своего режима. Если файла нет, сначала создать его.
 

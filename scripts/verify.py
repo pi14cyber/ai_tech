@@ -23,6 +23,7 @@ CHECKS = (
     ("Заметки по источникам", "verify_harness.py"),
     ("База знаний", "verify_knowledge.py"),
     ("Внешнее исследование", "verify_research.py"),
+    ("Документация и пути", "verify_docs.py"),
 )
 
 
