@@ -24,6 +24,7 @@ CHECKS = (
     ("База знаний", "verify_knowledge.py"),
     ("Внешнее исследование", "verify_research.py"),
     ("Документация и пути", "verify_docs.py"),
+    ("Разделение слоёв", "verify_layers.py"),
 )
 
 
