@@ -87,7 +87,7 @@
 | 4 | `pres/docs/biblio/Ot-nulya-k-edynytse.md` | Тиль: монополия, конкуренция, признаки монополии, последний ход | прочитан целиком: `extracts/thiel.md`, `extracts/answers-thiel.md` |
 | 5 | `pres/docs/biblio/b81d33ce-aa5a-41d3-a554-5360b50c053f.md` | Бланк, «Четыре шага к озарению»: Customer Development | прочитан целиком: `extracts/blank.md`, `extracts/answers-blank.md`; последовательность вынесена в `03_pipeline.md`, часть L |
 | 6 | `pres/docs/biblio/Sprosi_mamu-_The_Mom_Test-_RU (2).md` | Фитцпатрик: правила интервью, типы плохих данных, commitment | прочитан целиком: `extracts/momtest.md`, `extracts/answers-momtest.md` |
-| 7 | `pres/docs/biblio/Blank-S.-Dorf-B.-StartUp.-Nastolnaya-kniga-osnovatelya.md` | Бланк и Дорф: рабочие листы, опросники, критерии выхода | читается: восемь диапазонов в работе |
+| 7 | `pres/docs/biblio/Blank-S.-Dorf-B.-StartUp.-Nastolnaya-kniga-osnovatelya.md` | Бланк и Дорф: рабочие листы, опросники, критерии выхода | прочитана целиком, восемь диапазонов: `extracts/blankdorf.md`, `extracts/answers-blankdorf.md` |
 | 8 | `pres/docs/biblio/Blank-Dorf-StartUp.md` | распознанная копия того же текста, сделана из PDF | резерв, если в основной версии побьются таблицы рабочих листов |
 | 9 | `pres/docs/hadi.md` | HADI-циклы, текст владельца | встроено в пайплайн, часть J |
 | 10 | PDF-копии книг в `pres/docs/biblio/pdf` | сверка цитат, если текст в md побит распознаванием | отделены от рабочих md, не читались |
