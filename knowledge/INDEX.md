@@ -18,7 +18,7 @@
 | Файл | Тип и уровень | О чём | На каком шаге открывать |
 |---|---|---|---|
 | `01_canon/thiel_monopoly.md` | канон, `[база]` | монополия, конкуренция, где искать незанятое | 01-field-filter |
-| `01_canon/fitzpatrick_momtest.md` | канон, `[база]` | три вида шума, вопросы о прошлом, обязательства, шкала сигнала | 00-onboarding-interview, 03-deep-research, 05-validation-gate |
+| `01_canon/fitzpatrick_momtest.md` | канон, `[база]` | три вида шума, вопросы о прошлом, обязательства, шкала сигнала | 00-onboarding-interview, 03-prevalidation, 05-validation-gate |
 | `01_canon/blank_custdev.md` | канон, `[база]` | четыре этапа Customer Development, критерии выхода, границы применимости | 05-validation-gate, 02-hadi-hypothesis |
 
 ## План пополнения
@@ -29,7 +29,7 @@
 | `02_external/rates_ai_vs_human.md` | ресёрч | ждёт ответа на `req_00_stream`, вопрос `Q7.1` |
 | `02_external/unstandardized_fields.md` | ресёрч | ждёт ответа, вопросы `Q1.1`, `Q1.2` |
 | `02_external/agent_skills_spec.md` | ресёрч | ждёт ответа, вопросы `Q5.1`–`Q5.3` |
-| `03_practices/blind_research_prompts.md` | практика | правила готовы в навыке `03-deep-research` |
+| `03_practices/blind_research_prompts.md` | практика | правила готовы в навыке `03-prevalidation` |
 | `03_practices/pretext_mvp_patterns.md` | практика | нужен живой прогон |
 
 ## Как пополняется
