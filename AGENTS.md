@@ -7,9 +7,13 @@
 Перед любым содержательным предложением прочитать:
 
 - `pres/draft/00_narrative_map.md` — логика повествования
-- `pres/draft/01_questionnaire.md` — ответы спикера и открытые вопросы
+- `pres/draft/01_questionnaire.md` — ответы владельца и принятые решения
 - `pres/draft/02_architecture.md` — структура выступления
-- `pres/draft/03_pipeline.md` — универсальный пайплайн
+- `pres/draft/03_pipeline.md` — универсальный пайплайн, роли, последовательность по Бланку
+- `pres/draft/04_master_draft.md` — генеральный черновик
+- `pres/draft/05_external_research.md` — очередь заданий внешнему исследователю
+- `pres/draft/06_owner_ideas.md` — идеи владельца, источник
+- `pres/draft/07_assistant_method.md` — методология персонального помощника
 
 Не давать советов, не прочитав состояние. Если файла нет, сначала создать его.
 
