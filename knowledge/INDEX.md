@@ -29,6 +29,7 @@
 | `02_external/rates_ai_vs_human.md` | ресёрч | ждёт ответа на `req_00_stream`, вопрос `Q7.1` |
 | `02_external/unstandardized_fields.md` | ресёрч | ждёт ответа, вопросы `Q1.1`, `Q1.2` |
 | `02_external/agent_skills_spec.md` | ресёрч | ждёт ответа, вопросы `Q5.1`–`Q5.3` |
+| `02_external/software_integrations.md` | ресёрч | ждёт ответа на `req_01_integrations`, вопросы `Q1.1`–`Q4.2` |
 | `03_practices/blind_research_prompts.md` | практика | правила готовы в навыке `03-prevalidation` |
 | `03_practices/pretext_mvp_patterns.md` | практика | нужен живой прогон |
 

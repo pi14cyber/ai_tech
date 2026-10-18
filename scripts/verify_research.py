@@ -33,10 +33,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REQ_DIR = os.path.join(ROOT, "internal", "draft", "requests")
 RESP_DIR = os.path.join(ROOT, "internal", "draft", "responses")
 
-ID_RE = re.compile(r"^(?:#{2,6}\s*|\*\*)?(Q\d+\.\d+)\b", re.MULTILINE)
+ID_RE = re.compile(r"^(?:#{1,6}\s*)?(?:\*\*)?(?:Вопрос\s*)?(?:`)?(Q\d+\.\d+)\b", re.MULTILINE)
 ANY_ID_RE = re.compile(r"\bQ\d+\.\d+\b")
 SECTIONS = ("Факты за", "Факты против", "Белые пятна")
 WHITE_MARK = "не удалось"
+MAX_QUESTIONS = 6
 
 
 def read(path):
@@ -75,7 +76,7 @@ def main():
     if not os.path.isdir(REQ_DIR):
         broken.append("нет папки запросов: %s" % REQ_DIR)
     else:
-        requests = [f for f in sorted(os.listdir(REQ_DIR)) if f.endswith(".md")]
+        requests = [f for f in sorted(os.listdir(REQ_DIR)) if f.endswith(".md") and f != "README.md"]
         if not requests:
             broken.append("в папке запросов нет ни одного файла")
         for name in requests:
@@ -87,6 +88,12 @@ def main():
                 continue
             req_ids = list(dict.fromkeys(req_ids))
             total_q += len(req_ids)
+
+            if len(req_ids) > MAX_QUESTIONS:
+                problems.append(
+                    "%s: %d вопросов, предел пакета %d — нарежь на пакеты, иначе внешняя модель срежет ответ"
+                    % (name, len(req_ids), MAX_QUESTIONS)
+                )
 
             base = name[:-3]
             resp_path = find_response(base)
