@@ -1,6 +1,7 @@
 # Данные конкретного человека не попадают в публичную историю
 workspace/*
 !workspace/README.md
+!workspace/LOCAL-ONLY.template
 
 # Клоны чужих репозиториев для разбора практик: в публичную историю не попадают
 internal/research/

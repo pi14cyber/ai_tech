@@ -50,6 +50,13 @@ def main():
         print("")
 
     worst = max(codes)
+    marker = os.path.join(os.path.dirname(HERE), "workspace", "LOCAL-ONLY")
+    mode = "только локально" if os.path.exists(marker) else "обычный (внешние запросы разрешены)"
+    print("=" * 60)
+    print("РЕЖИМ: %s" % mode)
+    if os.path.exists(marker):
+        print("  Файл workspace/LOCAL-ONLY на месте: запросы наружу не отправляются,")
+        print("  предвалидация помечается [допущение], задания копятся в очереди.")
     print("=" * 60)
     print("ИТОГ ПО ВСЕМ ПРОВЕРКАМ: %d" % worst)
     print("=" * 60)
