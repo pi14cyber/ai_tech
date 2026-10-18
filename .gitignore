@@ -2,6 +2,9 @@
 workspace/*
 !workspace/README.md
 
+# Клоны чужих репозиториев для разбора практик: в публичную историю не попадают
+pres/research/
+
 # Служебное
 .DS_Store
 *.log
