@@ -13,7 +13,7 @@
 | `interview.md` | агент размечает после разговора | `workspace/interviews/` |
 | `hadi-tracker.md` | агент ведёт, статусы меняет человек | `workspace/hadi-tracker.md` |
 | `research-queue.md` | агент пишет задания, внешний исследователь приносит факты | `workspace/research-queue.md` |
-| `source-conflicts.md` | агент | `pres/draft/` при работе с источниками |
+| `source-conflicts.md` | агент | `internal/draft/` при работе с источниками |
 
 ## Разметка полей по заполняющему
 

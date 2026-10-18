@@ -30,8 +30,8 @@ except Exception:
     pass
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REQ_DIR = os.path.join(ROOT, "pres", "draft", "requests")
-RESP_DIR = os.path.join(ROOT, "pres", "draft", "responses")
+REQ_DIR = os.path.join(ROOT, "internal", "draft", "requests")
+RESP_DIR = os.path.join(ROOT, "internal", "draft", "responses")
 
 ID_RE = re.compile(r"^(?:#{2,6}\s*|\*\*)?(Q\d+\.\d+)\b", re.MULTILINE)
 ANY_ID_RE = re.compile(r"\bQ\d+\.\d+\b")

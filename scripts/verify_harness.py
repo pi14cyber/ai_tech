@@ -13,7 +13,7 @@
 
 Что проверяется:
 
-1. Каждая заметка в pres/draft/extracts/notes объявляет источник в первой строке,
+1. Каждая заметка в internal/draft/extracts/notes объявляет источник в первой строке,
    и объявленный источник совпадает с префиксом имени файла.
    Именно это ловит наш сбой: файл от другого источника под чужим именем.
 2. Диапазоны строк каждого источника идут подряд, без пропусков и наложений,
@@ -36,8 +36,8 @@ except Exception:
     pass
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-NOTES_DIR = os.path.join(ROOT, "pres", "draft", "extracts", "notes")
-BIBLIO_DIR = os.path.join(ROOT, "pres", "docs", "biblio")
+NOTES_DIR = os.path.join(ROOT, "internal", "draft", "extracts", "notes")
+BIBLIO_DIR = os.path.join(ROOT, "internal", "docs", "biblio")
 
 # префикс имени файла -> (файл источника, обязательная подстрока в первой строке)
 SOURCES = {

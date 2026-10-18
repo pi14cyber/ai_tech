@@ -2,7 +2,7 @@
 id: canon-fitzpatrick-momtest
 type: book_extract
 evidence_level: [база]
-source_url: "pres/docs/biblio/Sprosi_mamu-_The_Mom_Test-_RU (2).md"
+source_url: "internal/docs/biblio/Sprosi_mamu-_The_Mom_Test-_RU (2).md"
 date_verified: 2026-10-18
 used_in_skills: [00-onboarding-interview, 03-deep-research, 05-validation-gate]
 freshness_ttl: forever
