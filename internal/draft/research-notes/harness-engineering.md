@@ -236,7 +236,7 @@
 
 По убыванию отдачи. Первые три относятся прямо к инциденту 18.10.2026.
 
-**1. Поле происхождения у нашего правила.** У нас правило записи файлов лежит текстом в [internal/draft/07_assistant_method.md:338-346](internal/draft/07_assistant_method.md#L338-L346). Взять форму `provenance: regression` + `source:` ([checkpoints.yaml:225-226](internal/research/netresearch-agent-harness-skill/skills/agent-harness/checkpoints.yaml#L225-L226)) и приписать к пунктам 1-5 дату `2026-10-18` и что именно было затёрто. Дёшево, и снимает главную слабость: сейчас связь между сбоем и правилом есть только в абзаце 340.
+**1. Поле происхождения у нашего правила.** У нас правило записи файлов лежит текстом в [METHODOLOGY.md](METHODOLOGY.md), раздел 13.1 (файл `internal/draft/07_assistant_method.md` после переноса методики стал заглушкой на 20 строк). Взять форму `provenance: regression` + `source:` ([checkpoints.yaml:225-226](internal/research/netresearch-agent-harness-skill/skills/agent-harness/checkpoints.yaml#L225-L226)) и приписать к пунктам 1-5 дату `2026-10-18` и что именно было затёрто. Дёшево, и снимает главную слабость: сейчас связь между сбоем и правилом есть только в разделе 13.1.
 
 **2. Машинная форма правила — сверка ожидаемого списка с диском в обе стороны.** Копировать логику [verify-harness.sh:336-362](internal/research/netresearch-agent-harness-skill/skills/agent-harness/scripts/verify-harness.sh#L336-L362): декларация без исполнителя и исполнитель без декларации — оба `error`. Перенос буквальный: перед выдачей задания ведущий пишет список ожидаемых путей; после работы скрипт сравнивает список с фактическим деревом и даёт три исхода:
 
@@ -263,10 +263,10 @@
 
 ## 7. Что у нас уже лучше
 
-- **Разбор инцидента с датой и последствием.** [internal/draft/07_assistant_method.md:340](internal/draft/07_assistant_method.md#L340) называет дату, участников, что именно затёрто и почему нашлось только при сверке. У AH инцидент сведён к номеру issue ([checkpoints.yaml:226](internal/research/netresearch-agent-harness-skill/skills/agent-harness/checkpoints.yaml#L226)), у HE инцидентов нет вовсе.
-- **Правило записи файлов** — у нас есть, пять пунктов, расписывать не буду ([07_assistant_method.md:342-346](internal/draft/07_assistant_method.md#L342-L346)).
-- **Проверка количества файлов** — у нас есть, как ручная сверка ведущим ([346](internal/draft/07_assistant_method.md#L346)); у AH эквивалента нет, у HE он только в офлайн-евале.
-- **Приёмка по артефактам на диске** — у нас названа прямо ([346](internal/draft/07_assistant_method.md#L346)). У HE ближайшее — один пункт сенсора «verify paths are valid, no destructive overwrites» ([HE/docs/phase2-architecture.md:77](internal/research/sujalmanpara-harness-engine/docs/phase2-architecture.md#L77)) без контракта имён; у AH такого нет.
+- **Разбор инцидента с датой и последствием.** [METHODOLOGY.md](METHODOLOGY.md), раздел 13.1 называет дату, участников, что именно затёрто и почему нашлось только при сверке. У AH инцидент сведён к номеру issue ([checkpoints.yaml:226](internal/research/netresearch-agent-harness-skill/skills/agent-harness/checkpoints.yaml#L226)), у HE инцидентов нет вовсе.
+- **Правило записи файлов** — у нас есть, пять пунктов, расписывать не буду (METHODOLOGY.md, раздел 13.1).
+- **Проверка количества файлов** — у нас есть, как ручная сверка ведущим (AGENTS.md, раздел 13); у AH эквивалента нет, у HE он только в офлайн-евале.
+- **Приёмка по артефактам на диске** — у нас названа прямо (AGENTS.md, раздел 13). У HE ближайшее — один пункт сенсора «verify paths are valid, no destructive overwrites» ([HE/docs/phase2-architecture.md:77](internal/research/sujalmanpara-harness-engine/docs/phase2-architecture.md#L77)) без контракта имён; у AH такого нет.
 - **Разделение ролей «пишущий / ведущий»** есть у нас; в обоих репозиториях проверяет тот же, кто делает, либо CI после факта.
 - **Запрет записи в `templates/`** у нас жёсткий ([AGENTS.md](AGENTS.md) §10); у AH аналог — «never overwrite existing files without confirmation» ([SKILL.md:54](internal/research/netresearch-agent-harness-skill/skills/agent-harness/SKILL.md#L54)), то есть проза, которую их же документ объявляет неработающей.
 - **Чего у нас нет:** машинной формы правила. Всё перечисленное выше — текст и дисциплина, ни один пункт не проверяется скриптом с кодом возврата. Это и есть разрыв, который закрывают пункты 2 и 3 из §6.

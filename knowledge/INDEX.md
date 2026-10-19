@@ -20,16 +20,22 @@
 | `01_canon/thiel_monopoly.md` | канон, `[база]` | монополия, конкуренция, где искать незанятое | 01-field-filter |
 | `01_canon/fitzpatrick_momtest.md` | канон, `[база]` | три вида шума, вопросы о прошлом, обязательства, шкала сигнала | 00-onboarding-interview, 03-prevalidation, 05-validation-gate |
 | `01_canon/blank_custdev.md` | канон, `[база]` | четыре этапа Customer Development, критерии выхода, границы применимости | 05-validation-gate, 02-hadi-hypothesis |
+| `01_canon/hadi_cycles.md` | канон, `[база]` | HADI-цикл: четыре этапа, формула гипотезы, нормы 20–30%, типовые ошибки | 02-hadi-hypothesis |
+| `02_external/networking_practices.md` | внешнее, `[внешнее]` | числа по каналам доступа, размеру списка, форме сообщения, пределам рассылок | 06-access |
 
 ## План пополнения
 
 | Файл | Тип | Состояние |
 |---|---|---|
 | `01_canon/blankdorf_worksheets.md` | канон | каталог рабочих листов в `internal/draft/extracts/blankdorf.md` |
-| `02_external/rates_ai_vs_human.md` | ресёрч | ждёт ответа на `req_00_stream`, вопрос `Q7.1` |
-| `02_external/unstandardized_fields.md` | ресёрч | ждёт ответа, вопросы `Q1.1`, `Q1.2` |
-| `02_external/agent_skills_spec.md` | ресёрч | ждёт ответа, вопросы `Q5.1`–`Q5.3` |
-| `02_external/software_integrations.md` | ресёрч | ждёт ответа на `req_01_integrations`, вопросы `Q1.1`–`Q4.2` |
+| `02_external/rates_ai_vs_human.md` | ресёрч | ждёт ответа на `req_00b_rates`, вопросы `Q1.1`–`Q1.3` |
+| `02_external/unstandardized_fields.md` | ресёрч | ждёт ответа на `req_00a_domains`, вопросы `Q1.1`–`Q1.3` |
+| `02_external/agent_skills_spec.md` | ресёрч | ждёт ответа на `req_00c_players`, вопросы `Q1.3`–`Q1.5` |
+| `02_external/software_integrations.md` | ресёрч | снят 19.10.2026: покрыт карточкой `documents_tools` |
+| `02_external/networking_practices.md` | ресёрч | **готова** 20.10.2026 из `req_02_access` |
+| `02_external/documents_tools.md` | ресёрч | ждёт ответа на `req_02_documents`, вопросы `Q1.1`–`Q1.6` |
+| `02_external/conversation_practices.md` | ресёрч | ждёт ответа на `req_02_conversation`, вопросы `Q1.1`–`Q1.4` |
+| `02_external/agent_tooling.md` | ресёрч | ждёт повторного прохода по заданию 11: ответ есть, адресов нет; материал — `internal/draft/23_agent_tooling_review.md` |
 | `03_practices/blind_research_prompts.md` | практика | правила готовы в навыке `03-prevalidation` |
 | `03_practices/pretext_mvp_patterns.md` | практика | нужен живой прогон |
 

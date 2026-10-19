@@ -65,6 +65,11 @@ def main():
             if field not in text:
                 problems.append("%s: нет поля шапки «%s»" % (name, field))
 
+        if os.path.dirname(path) == REQ_DIR and "**Категория:**" not in text:
+            problems.append(
+                "%s: нет поля шапки «**Категория:**» — укажи `быстрая` или `дип`" % name
+            )
+
         for section in SECTIONS:
             if section not in text:
                 problems.append("%s: нет раздела «%s»" % (name, section))

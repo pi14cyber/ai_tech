@@ -34,9 +34,11 @@ REQ_DIR = os.path.join(ROOT, "internal", "draft", "requests")
 ARCH_DIR = os.path.join(REQ_DIR, "archive")
 RESP_DIR = os.path.join(ROOT, "internal", "draft", "responses")
 RESP_DIRS = (RESP_DIR, os.path.join(ARCH_DIR, "answers"))
+INBOX_DIR = os.path.join(RESP_DIR, "inbox")
 
 ID_RE = re.compile(r"^(?:#{1,6}\s*)?(?:\*\*)?(?:Вопрос\s*)?(?:`)?(Q\d+\.\d+)\b", re.MULTILINE)
 ANY_ID_RE = re.compile(r"\bQ\d+\.\d+\b")
+OBSOLETE_RE = re.compile(r"^\*\*Статус:\*\*\s*неактуален", re.MULTILINE)
 SECTIONS = ("Факты за", "Факты против", "Белые пятна")
 WHITE_MARK = "не удалось"
 MAX_QUESTIONS = 6
@@ -78,6 +80,7 @@ def main():
     broken = []
     problems = []
     waiting = []
+    obsolete = []
     total_q = 0
     answered = 0
 
@@ -92,6 +95,9 @@ def main():
         for folder, name in pairs:
             req_path = os.path.join(folder, name)
             req_text = read(req_path)
+            if OBSOLETE_RE.search(req_text):
+                obsolete.append(name)
+                continue
             req_ids = [m.group(1) for m in ID_RE.finditer(req_text)]
             if not req_ids:
                 broken.append("в запросе %s не найдено ни одного идентификатора Qn.n" % name)
@@ -149,6 +155,8 @@ def main():
             )
 
     print("")
+    if obsolete:
+        print("СНЯТО С РАБОТЫ: %d запросов в архиве, ответа не ждут" % len(obsolete))
     for line in waiting:
         print("ОЖИДАЕТ: %s" % line)
     for line in broken:
@@ -158,6 +166,16 @@ def main():
 
     if total_q:
         print("\nвсего вопросов в запросах: %d, отвечено: %d" % (total_q, answered))
+
+    incoming = []
+    if os.path.isdir(INBOX_DIR):
+        incoming = sorted(f for f in os.listdir(INBOX_DIR) if not f.startswith("README"))
+    if incoming:
+        print("\nВХОДЯЩИЕ (responses/inbox): %d файл(ов) — заготовки и ответы" % len(incoming))
+        for name in incoming:
+            print("  входящий: %s" % name)
+    else:
+        print("\nвходящих ответов нет")
 
     if broken:
         print("\nИТОГ: 2 — сломан запрос, проверять нечего")
