@@ -76,6 +76,11 @@ def main(argv=None):
     write_mode = "--write" in args
     move_mode = "--move" in args
 
+    if not os.path.isdir(os.path.join(ROOT, "internal")):
+        print("РЕЖИМ ПОЛЬЗОВАТЕЛЯ: папки internal/ нет — состояние запросов проекта не проверяется")
+        print("\nИТОГ: 0 — проверять нечего")
+        return 0
+
     if not os.path.isdir(REQ_DIR):
         print("ИТОГ: 2 — нет папки запросов: %s" % REQ_DIR)
         return 2

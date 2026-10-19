@@ -44,6 +44,11 @@ ANY_REQ = re.compile(r"\breq_\d[0-9a-z_]*")
 
 
 def main():
+    if not os.path.isdir(os.path.join(ROOT, "internal")):
+        print("РЕЖИМ ПОЛЬЗОВАТЕЛЯ: папки internal/ нет — структура запросов проекта не проверяется")
+        print("\nИТОГ: 0 — проверять нечего")
+        return 0
+
     if not os.path.isdir(REQ_DIR):
         print("ИТОГ: 2 — нет папки запросов: %s" % REQ_DIR)
         return 2

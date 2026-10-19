@@ -77,6 +77,12 @@ def blocks(text, ids):
 
 
 def main():
+    if not os.path.isdir(os.path.join(ROOT, "internal")):
+        print("РЕЖИМ ПОЛЬЗОВАТЕЛЯ: папки internal/ нет — запросы проекта не проверяются.")
+        print("Запросы и ответы человека живут в workspace/requests и workspace/responses.")
+        print("\nИТОГ: 0 — проверять нечего")
+        return 0
+
     broken = []
     problems = []
     waiting = []

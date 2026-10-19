@@ -101,6 +101,11 @@ def line_count(path):
 
 
 def main():
+    if not os.path.isdir(os.path.join(ROOT, "internal")):
+        print("РЕЖИМ ПОЛЬЗОВАТЕЛЯ: папки internal/ нет — заметки о клонах не проверяются")
+        print("\nИТОГ: 0 — проверять нечего")
+        return 0
+
     if not os.path.isdir(NOTES_DIR):
         print("ИТОГ: 2 — нет папки заметок: %s" % NOTES_DIR)
         return 2

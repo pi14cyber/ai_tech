@@ -61,6 +61,11 @@ def main():
     broken = []   # код 2: декларация
     problems = []  # код 1: расхождения
 
+    if not os.path.isdir(os.path.join(ROOT, "internal")) and "--self-test" not in sys.argv:
+        print("РЕЖИМ ПОЛЬЗОВАТЕЛЯ: папки internal/ нет — заметки по источникам не проверяются")
+        print("\nИТОГ: 0 — проверять нечего")
+        return 0
+
     if not os.path.isdir(NOTES_DIR):
         broken.append("нет папки заметок: %s" % NOTES_DIR)
     else:
