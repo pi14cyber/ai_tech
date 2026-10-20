@@ -4,7 +4,7 @@
   "counts": {
     "skills": 14,
     "templates": 26,
-    "checks": 13,
+    "checks": 14,
     "stop_conditions": 6
   },
   "limits": {
@@ -58,6 +58,7 @@
     "measure_days": ["skills/00b-telemetry-setup/SKILL.md"],
     "cycle_weeks": ["skills/02-hadi-hypothesis/SKILL.md", "templates/hadi-tracker.md"],
     "question_length": ["AGENTS.md"],
+    "question_length": ["AGENTS.md"],
     "list_people_min": ["skills/06-access/SKILL.md"],
     "list_people_max": ["skills/06-access/SKILL.md"]
   },
@@ -71,15 +72,17 @@
   "canon_rules": {
     "research": "Сеть — только через человека",
     "network_agent": "Агент в сеть не ходит",
-    "gate_single": "Правило `BUILD` остаётся одно — пункт 3",
-    "packets": "Каждый пакет — отдельный файл запроса со своей нумерацией от `Q1.1`",
-    "stop_canon": "Канон — шесть условий в `AGENTS.md`, раздел 11"
+    "gate_single": "Правило `BUILD` остаётся одно",
+    "packets": "нумераци[аия] (от|с) `Q1\\.1`",
+    "stop_canon": "Канон — шесть условий"
   },
   "required": {
     "templates/request-short.md": ["Пакет", "Внешний сервис", "Исполнитель запроса"],
     "templates/request-full.md": ["Пакет", "Внешний сервис", "Исполнитель запроса"],
     "templates/prevalidation-report.md": ["Исход ворот", "Пакет"],
-    "templates/state.md": ["Исход ворот", "Решение судьи", "Версия результата", "Задано вопросов", "Режим"],
+    "templates/state.md": ["Исход ворот", "Решение судьи", "Версия результата", "Задано вопросов", "Режим", "Контур", "Номер сессии", "Готов к показу", "Решение человека"],
+    "templates/decisions.md": ["Цитата решения", "Канал", "Когда"],
+    "templates/interview.md": ["Собеседник", "Проверяемое допущение"],
     "templates/artifact.md": ["Версия", "Исход проверки", "Текст сообщения"],
     "templates/judge-report.md": ["Решение судьи", "Версия результата", "Кто проверял"],
     "templates/audit-log.md": ["Кто проверил"],

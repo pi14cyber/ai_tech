@@ -25,6 +25,7 @@
 """
 
 import glob
+import json
 import os
 import re
 import sys
@@ -44,6 +45,25 @@ OUTCOMES = ("прошло", "не прошло", "заблокировано", "
 JUDGE = ("показывать", "не показывать")
 CLASSES = ("A", "B", "C", "D")
 FINDING = ("найдено", "предложено", "внедрено", "отклонено", "проверено")
+STEP_VOCAB = ("онбординг", "замер", "выбор поля", "гипотеза", "предвалидация",
+              "артефакт", "доступ", "разговор", "решение")
+MODE_VOCAB = ("обычный", "только локально")
+CONTOUR_VOCAB = ("внешний", "внутренний")
+READY_VOCAB = ("да", "нет")
+LIMITS = {"first": 5, "later": 3}
+
+
+def load_limits():
+    path = os.path.join(ROOT, "rules", "canon.json")
+    if not os.path.exists(path):
+        return LIMITS
+    try:
+        canon = json.load(open(path, encoding="utf-8"))
+        limits = canon.get("limits", {})
+        return {"first": limits.get("questions_first_session", 5),
+                "later": limits.get("questions_later", 3)}
+    except Exception:
+        return LIMITS
 
 
 def read(path):
@@ -64,6 +84,14 @@ def field(content, key):
 
 
 def main():
+    if "--root" in sys.argv:
+        index = sys.argv.index("--root")
+        if index + 1 >= len(sys.argv):
+            print("ИТОГ: 2 — параметр --root без значения: проверять нечего")
+            return 2
+        if not os.path.isdir(WS):
+            print("ИТОГ: 2 — корень %s не найден: проверять нечего" % ROOT)
+            return 2
     if not os.path.isdir(WS):
         print("workspace/ нет — проверять нечего (режим пользователя)")
         print("\nИТОГ: 0 — артефактов нет")
@@ -76,26 +104,61 @@ def main():
     if os.path.exists(state_path):
         checked += 1
         content = read(state_path)
-        for key in ("Текущий шаг", "Режим", "Задано вопросов"):
+        for key in ("Текущий шаг", "Режим", "Задано вопросов", "Номер сессии"):
             if field(content, key) is None:
                 problems.append("state.md — не заполнено поле «%s» (подсказка не считается ответом)" % key)
+        step = field(content, "Текущий шаг") or ""
+        if not any(v in step.lower() for v in STEP_VOCAB):
+            problems.append("state.md — текущий шаг «%s» не из словаря" % step)
+        marker = os.path.exists(os.path.join(WS, "LOCAL-ONLY"))
+        mode = (field(content, "Режим") or "").lower()
+        if marker and "локально" not in mode:
+            problems.append("state.md — файл LOCAL-ONLY есть, а режим «%s»: расхождение" % mode)
+        if not marker and "локально" in mode:
+            problems.append("state.md — режим «только локально», а файла LOCAL-ONLY нет")
+        if mode and not any(m in mode for m in MODE_VOCAB):
+            problems.append("state.md — режим «%s» не из словаря" % mode)
+        contour = field(content, "Контур")
+        if contour and not any(c in contour.lower() for c in CONTOUR_VOCAB):
+            problems.append("state.md — контур «%s» не из словаря" % contour)
+        session = field(content, "Номер сессии")
+        counter = field(content, "Задано вопросов")
+        limits = load_limits()
+        if session is not None and not session.strip().isdigit():
+            problems.append("state.md — номер сессии «%s» не число" % session)
+        if counter is not None and not counter.strip().isdigit():
+            problems.append("state.md — счётчик вопросов «%s» не число" % counter)
+        if session is not None and session.strip().isdigit() and counter is not None and counter.strip().isdigit():
+            allowed = limits["first"] if int(session.strip()) <= 1 else limits["later"]
+            if int(counter.strip()) > allowed:
+                problems.append("state.md — задано вопросов %s при пределе %d" % (counter.strip(), allowed))
         gate = field(content, "Исход ворот")
-        if gate is not None and not any(o in gate for o in OUTCOMES):
-            problems.append("state.md — исход ворот «%s» не из словаря" % gate)
+        if gate is not None:
+            head = gate.strip().split()[0].strip(".,:;—-").lower()
+            if head not in OUTCOMES:
+                problems.append("state.md — исход ворот «%s» не из словаря" % gate)
         ready = field(content, "Готов к показу")
-        if ready and "да" in ready.lower():
-            decision = field(content, "Решение судьи")
-            if decision is None or not any(j in decision.lower() for j in JUDGE):
-                problems.append("state.md — «готов к показу», но решения судьи в состоянии нет: показ запрещён")
-            elif "не показывать" in decision.lower():
-                problems.append("state.md — «готов к показу», но судья сказал «не показывать»")
+        if ready is not None:
+            head = ready.strip().split()[0].strip(".,:;—-").lower()
+            if head not in READY_VOCAB:
+                problems.append("state.md — «готов к показу» = «%s» не из да/нет" % ready)
+            if head == "да":
+                decision = field(content, "Решение судьи")
+                normalized = (decision or "").lower()
+                if "не показывать" in normalized:
+                    problems.append("state.md — «готов к показу», но судья сказал «не показывать»")
+                elif not normalized.strip(" .").startswith("показывать"):
+                    problems.append("state.md — «готов к показу», но строгого решения судьи «показывать» нет")
 
     profile_path = os.path.join(WS, "profile.md")
     if os.path.exists(profile_path):
         checked += 1
         content = read(profile_path)
-        if field(content, "Уровень готовности делиться") is None:
+        consent = field(content, "Уровень готовности делиться")
+        if consent is None:
             problems.append("profile.md — не заполнен уровень готовности делиться данными (вопрос шага 0)")
+        elif not any(v in consent.lower() for v in ("файлы", "метаданные", "ответы", "локально")):
+            problems.append("profile.md — уровень готовности «%s» не из четырёх вариантов" % consent)
 
     responses = glob.glob(os.path.join(WS, "responses", "*.md"))
     for report in sorted(glob.glob(os.path.join(WS, "research", "prevalidation-*.md"))):
@@ -117,6 +180,8 @@ def main():
                 if len(q_lines) < 2:
                     problems.append("%s — при исходе «прошло» нужно не меньше двух строк Q с адресом и датой (найдено %d)"
                                     % (name, len(q_lines)))
+                if not responses:
+                    problems.append("%s — исход «прошло», но ни одного файла ответа нет: ворота не пройдены" % name)
                 if "дип" in content and len(responses) < 2:
                     problems.append("%s — полный запрос, а файлов ответов %d (нужно два)" % (name, len(responses)))
         if "Пакет" not in content:
@@ -126,9 +191,12 @@ def main():
         checked += 1
         name = os.path.basename(report)
         content = read(report)
-        decision = field(content, "Решение судьи")
-        if decision is None or not any(j in decision for j in JUDGE):
-            problems.append("%s — нет решения судьи (показывать / не показывать)" % name)
+        decision_raw = field(content, "Решение судьи")
+        normalized = (decision_raw or "").lower().strip(" .")
+        if "не показывать" in normalized:
+            pass
+        elif not normalized.startswith("показывать"):
+            problems.append("%s — нет строгого решения судьи «показывать» или «не показывать»" % name)
         version = field(content, "Версия результата")
         if version is None:
             problems.append("%s — нет привязки к версии результата" % name)
@@ -152,6 +220,20 @@ def main():
                 who = cells[7].strip() if len(cells) > 7 else ""
                 if not who:
                     problems.append("audit-log.md:%d — статус «проверено» без того, кто проверил" % number)
+
+    decisions_path = os.path.join(WS, "memory", "decisions.md")
+    if os.path.exists(decisions_path):
+        checked += 1
+        for number, line in enumerate(read(decisions_path).splitlines(), 1):
+            if not line.strip().startswith("|") or "---" in line:
+                continue
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if len(cells) < 8 or cells[0] in ("", "Дата"):
+                continue
+            who = cells[6]
+            quote = cells[3]
+            if who and not quote:
+                problems.append("decisions.md:%d — решение записано, а дословной цитаты решения нет" % number)
 
     artifact_path = os.path.join(WS, "artifact.md")
     if os.path.exists(artifact_path):
@@ -187,10 +269,14 @@ def self_test():
     bad_root = os.path.join(base, "bad")
     for root in (ok_root, bad_root):
         os.makedirs(os.path.join(root, "workspace", "research"))
+        os.makedirs(os.path.join(root, "workspace", "responses"))
+        open(os.path.join(root, "workspace", "responses", "req_01.answer.md"), "w",
+             encoding="utf-8").write("# Ответ\n\nQ1.1: факт\n")
     state = (
         "# Состояние\n\n"
         "- **Текущий шаг:** артефакт\n- **Что дальше (один шаг):** ворота\n"
         "- **Режим:** обычный\n- **Задано вопросов в сессии:** 4\n"
+        "- **Номер сессии:** 1\n"
         "- **Контур:** внешний\n- **Исход ворот:** прошло\n"
     )
     report = (

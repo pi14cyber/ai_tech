@@ -75,6 +75,10 @@ def main():
         return 2
 
     problems = []
+    for key in ("counts", "limits", "statuses", "banned", "canon_rules"):
+        if key not in canon:
+            print("ИТОГ: 2 — канон сломан: нет блока «%s»" % key)
+            return 2
     counts = canon["counts"]
 
     skills = [d for d in os.listdir(os.path.join(ROOT, "skills"))
@@ -89,9 +93,12 @@ def main():
         problems.append("шаблонов %d, канон говорит %d" % (len(templates), counts["templates"]))
 
     verify = read("scripts/verify.py")
-    checks = len(re.findall(r'^\s*\("', verify, re.MULTILINE))
+    check_names = re.findall(r'^\s*\("([^"]+)",\s*"[^"]+\.py"\)', verify, re.MULTILINE)
+    checks = len(check_names)
     if checks != counts["checks"]:
         problems.append("проверок в verify.py %d, канон говорит %d" % (checks, counts["checks"]))
+    if len(set(check_names)) != checks:
+        problems.append("в verify.py есть проверки с одинаковым названием — счёт их не различает")
 
     agents = read("AGENTS.md")
     words = {1: "одно", 2: "два", 3: "трёх", 4: "четырёх", 5: "пяти", 6: "шести",
@@ -111,6 +118,11 @@ def main():
     public.update({("skills/%s/SKILL.md" % d): read("skills/%s/SKILL.md" % d) for d in skills})
     public.update({("templates/%s" % f): read("templates/%s" % f) for f in templates})
     public["templates/README.md"] = read("templates/README.md")
+    for dirpath, _dirnames, filenames in os.walk(os.path.join(ROOT, "knowledge")):
+        for filename in filenames:
+            if filename.endswith(".md"):
+                rel = os.path.relpath(os.path.join(dirpath, filename), ROOT).replace("\\", "/")
+                public[rel] = read(rel)
 
     for group, phrases in canon["banned"].items():
         for phrase in phrases:
@@ -120,7 +132,7 @@ def main():
                     problems.append("%s — запрещённая каноном формулировка «%s» (%s)" % (name, phrase, group))
 
     def require(name, phrase):
-        if phrase not in public.get(name, ""):
+        if not re.search(phrase, public.get(name, ""), re.IGNORECASE):
             problems.append("%s — нет обязательной формулировки «%s»" % (name, phrase))
 
     rules = canon["canon_rules"]
