@@ -2,7 +2,7 @@
 
 Пустые формы, которые заполняются в `workspace/`. Агент **никогда не пишет в `templates/`**: он копирует нужный шаблон в `workspace/` и заполняет копию.
 
-**Сколько их:** 26 шаблонов (без этого README). Число и таблицу сверяет машинно `scripts/verify_consistency.py`.
+**Сколько их:** 28 шаблонов (без этого README). Число и таблицу сверяет машинно `scripts/verify_consistency.py`.
 
 ## Что здесь лежит
 
@@ -28,7 +28,9 @@
 | `prevalidation-report.md` | агент после разбора ответа | `workspace/research/prevalidation-<дата>.md` |
 | `request-short.md` | агент перед быстрой предвалидацией | `workspace/requests/` |
 | `request-full.md` | агент перед полной предвалидацией | `workspace/requests/` |
-| `research-response.md` | внешний исследователь по заданию | `workspace/responses/` |
+| `research-response.md` | внешний исследователь по заданию (общая форма) | `workspace/responses/` |
+| `response-short.md` | внешний исследователь по короткому запросу, затем агент разбирает | `workspace/responses/` |
+| `response-full.md` | внешний исследователь по полному запросу (два канала), затем агент сводит | `workspace/responses/` |
 | `source-conflicts.md` | агент, когда источники спорят | `workspace/source-conflicts.md` |
 | `time-log.md` | человек отвечает, агент записывает | `workspace/time-log.md` |
 | `file-log.md` | агент по метаданным, человек разрешает | `workspace/file-log.md` |
