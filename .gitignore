@@ -3,8 +3,12 @@ workspace/*
 !workspace/README.md
 !workspace/LOCAL-ONLY.template
 
+# Входящие файлы человека: личные данные, в публичную историю не попадают
+inbox/*
+!inbox/README.md
+
 # Клоны чужих репозиториев для разбора практик: в публичную историю не попадают
-internal/research/
+kit/internal/research/
 
 # Прогоны методики: песочницы с данными, в публичную историю не попадают
 runs/
@@ -15,9 +19,9 @@ runs/
 .agents/skills/
 
 # Временные копии для проверок и самотестов: в историю не попадают
-internal/draft/**/tmp-*/
-internal/draft/_selftest*/
-scripts/_selftest*/
+kit/internal/draft/**/tmp-*/
+kit/internal/draft/_selftest*/
+kit/scripts/_selftest*/
 
 # Служебное
 .DS_Store
