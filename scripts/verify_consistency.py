@@ -105,9 +105,28 @@ def main():
         claimed = re.search(r"внутри (\w+):", text)
         words = {"девять": 9, "десять": 10, "одиннадцать": 11, "двенадцать": 12,
                  "тринадцать": 13, "четырнадцать": 14}
-        if claimed and claimed.group(1) in words and words[claimed.group(1)] != checks:
+        claimed_value = None
+        if claimed:
+            token = claimed.group(1)
+            claimed_value = int(token) if token.isdigit() else words.get(token)
+        if claimed_value is not None and claimed_value != checks:
             problems.append("AGENTS.md — заявлено %s проверок, в verify.py %d"
                             % (claimed.group(1), checks))
+
+    agents_text = open(agents, encoding="utf-8").read() if os.path.exists(agents) else ""
+    if agents_text and "любое из шести" not in agents_text:
+        problems.append("AGENTS.md — нет формулировки «любое из шести» в стоп-условиях")
+    public_texts = []
+    for name in ("AGENTS.md", "START.md", "METHODOLOGY.md", "GLOSSARY.md"):
+        path = os.path.join(ROOT, name)
+        if os.path.exists(path):
+            public_texts.append((name, open(path, encoding="utf-8").read()))
+    public_texts += [(os.path.join("skills", d, "SKILL.md"), open(os.path.join(SKILLS, d, "SKILL.md"), encoding="utf-8").read())
+                     for d in skill_dirs]
+    for name, content in public_texts:
+        for wrong in ("любое из четырёх", "любое из пяти", "из четырёх ниже"):
+            if wrong in content:
+                problems.append("%s — старая версия числа стоп-условий: «%s»" % (name, wrong))
 
     for template in templates:
         problems.extend(table_problems(os.path.join(TEMPLATES, template)))
