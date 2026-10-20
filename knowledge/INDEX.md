@@ -28,13 +28,13 @@
 | Файл | Тип | Состояние |
 |---|---|---|
 | `01_canon/blankdorf_worksheets.md` | канон | каталог рабочих листов — в материалах автора набора |
-| `02_external/rates_ai_vs_human.md` | ресёрч | ждёт ответа на `req_00b_rates`, вопросы `Q1.1`–`Q1.3` |
-| `02_external/unstandardized_fields.md` | ресёрч | ждёт ответа на `req_00a_domains`, вопросы `Q1.1`–`Q1.3` |
-| `02_external/agent_skills_spec.md` | ресёрч | ждёт ответа на `req_00c_players`, вопросы `Q1.3`–`Q1.5` |
+| `02_external/rates_ai_vs_human.md` | ресёрч | ждёт повторного прохода: вопросы `Q1.1`–`Q1.3` |
+| `02_external/unstandardized_fields.md` | ресёрч | ждёт повторного прохода: вопросы `Q1.1`–`Q1.3` |
+| `02_external/agent_skills_spec.md` | ресёрч | ждёт повторного прохода: вопросы `Q1.3`–`Q1.5` |
 | `02_external/software_integrations.md` | ресёрч | снят 19.10.2026: покрыт карточкой `documents_tools` |
-| `02_external/networking_practices.md` | ресёрч | **готова** 20.10.2026 из `req_02_access` |
-| `02_external/documents_tools.md` | ресёрч | ждёт ответа на `req_02_documents`, вопросы `Q1.1`–`Q1.6` |
-| `02_external/conversation_practices.md` | ресёрч | ждёт ответа на `req_02_conversation`, вопросы `Q1.1`–`Q1.4` |
+| `02_external/networking_practices.md` | ресёрч | **готова** 20.10.2026 из ответа внешнего исследователя |
+| `02_external/documents_tools.md` | ресёрч | ждёт повторного прохода: вопросы `Q1.1`–`Q1.6` |
+| `02_external/conversation_practices.md` | ресёрч | ждёт повторного прохода: вопросы `Q1.1`–`Q1.4` |
 | `02_external/agent_tooling.md` | ресёрч | ждёт повторного прохода по заданию 11: ответ есть, адресов нет; материал — внутренний разбор инструментов агента |
 | `03_practices/blind_research_prompts.md` | практика | правила готовы в навыке `03-prevalidation` |
 | `03_practices/pretext_mvp_patterns.md` | практика | нужен живой прогон |
