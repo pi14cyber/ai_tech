@@ -413,6 +413,9 @@ def main():
                 problems.append("artifact.md — артефакт показан без подписи человека в состоянии: показ не разрешён")
             if not judge_authorizes_artifact and glob.glob(os.path.join(WS, "judge-report-*.md")):
                 problems.append("artifact.md — отчёт судьи не про артефакт: он не разрешает показ артефакта")
+            if not decisions_signed:
+                problems.append("artifact.md — артефакт показан, а в журнале решений нет подписи человека "
+                                "(цитата, канал, дата)")
             judges = glob.glob(os.path.join(WS, "judge-report-*.md"))
             ok = False
             for judge in judges:
