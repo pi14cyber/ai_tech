@@ -1,0 +1,56 @@
+{
+  "version": "0.5",
+  "about": "Единый канон набора: единственный источник чисел, статусов и словарей. Публичные файлы и проверки сверяются с ним; расхождение — код 1. Менять правила только здесь, затем приводить файлы.",
+  "counts": {
+    "skills": 14,
+    "templates": 26,
+    "checks": 13,
+    "stop_conditions": 6
+  },
+  "limits": {
+    "questions_first_session": 5,
+    "questions_later": 3,
+    "questions_per_packet": 6,
+    "short_request_min": 3,
+    "short_request_max": 5,
+    "full_request_max": 15,
+    "answer_words_short": 1200,
+    "answer_words_full": 2500,
+    "timebox_hours": 4,
+    "reworks": 2,
+    "message_words": 80,
+    "touches_per_week": 10,
+    "silence_hours": 72,
+    "contacts_per_sprint": 3,
+    "measure_days": "3–5",
+    "cycle_weeks": "1–2",
+    "question_length": 120,
+    "list_people_min": 30,
+    "list_people_max": 50
+  },
+  "statuses": {
+    "outcomes": ["прошло", "не прошло", "заблокировано", "не запускалось"],
+    "artifact": ["черновик", "показан человеку", "есть обязательство"],
+    "check": ["настроено", "собрано", "проверено"],
+    "obligation": ["открыто", "ждёт", "просрочено", "нужна проверка"],
+    "finding": ["найдено", "предложено", "внедрено", "отклонено", "проверено"],
+    "judge": ["показывать", "не показывать"],
+    "evidence_classes": ["A", "B", "C", "D"],
+    "verdicts": ["BUILD", "BUILD AS EXPERIMENT", "RUN N"],
+    "assumption": ["UNTESTED", "WEAKENED", "SUPPORTED", "KILLED"],
+    "contour": ["внешний", "внутренний"]
+  },
+  "banned": {
+    "outcome_synonyms": ["провалилось", "неудачно"],
+    "old_stop_counts": ["любое из четырёх", "любое из пяти", "из четырёх ниже"],
+    "prefilled_human": ["Кто решил: человек", "Показывать / не показывать", "вписывает человек: файлы"],
+    "false_sixteen": ["встреча с датой, интро", "назначенная встреча, интро", "время, репутация, деньги, встреча"]
+  },
+  "canon_rules": {
+    "research": "Сеть — только через человека",
+    "network_agent": "Агент в сеть не ходит",
+    "gate_single": "Правило `BUILD` остаётся одно — пункт 3",
+    "packets": "Каждый пакет — отдельный файл запроса со своей нумерацией от `Q1.1`",
+    "stop_canon": "Канон — шесть условий в `AGENTS.md`, раздел 11"
+  }
+}

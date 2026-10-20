@@ -35,6 +35,8 @@ CHECKS = (
     ("Ссылки в заметках", "verify_notes.py"),
     ("Адаптеры навыков", "verify_adapters.py"),
     ("Числа и формы", "verify_consistency.py"),
+    ("Канон: числа и статусы", "verify_canon.py"),
+    ("Артефакты workspace", "check_workspace.py"),
 )
 
 
