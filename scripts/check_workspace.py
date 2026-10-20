@@ -115,6 +115,7 @@ def main():
     state_decision = None
     state_ready = None
     state_gate = None
+    state_signature = None
     judge_checker = None
     judge_version = None
     report_outcomes = []
@@ -179,6 +180,9 @@ def main():
                 state_decision = "не показывать"
             elif lowered_decision.strip(" .").startswith("показывать"):
                 state_decision = "показывать"
+        signature = field(content, "Подписал человек")
+        if signature is not None:
+            state_signature = signature
         ready = field(content, "Готов к показу")
         if ready is not None:
             head = ready.strip().split()[0].strip(".,:;—-").lower()
@@ -297,6 +301,10 @@ def main():
             if state_version is not None and version.strip() != state_version.strip():
                 problems.append("%s — версия результата %s не совпадает с состоянием %s"
                                 % (name, version.strip(), state_version.strip()))
+        if "Итог проверок" not in content:
+            problems.append("%s — нет строки «Итог проверок»: пустые результаты не отличить от непроверенных" % name)
+        elif not re.search(r"Итог проверок[^\n]*\d+", content):
+            problems.append("%s — «Итог проверок» без числа проверенных" % name)
         if state_decision is not None:
             report_decision = "не показывать" if "не показывать" in normalized else "показывать"
             if state_decision != report_decision:
@@ -343,6 +351,7 @@ def main():
                     problems.append("audit-log.md:%d — статус «проверено» без того, кто проверил" % number)
 
     decisions_path = os.path.join(WS, "memory", "decisions.md")
+    decisions_signed = False
     if os.path.exists(decisions_path):
         checked += 1
         for number, line in enumerate(read(decisions_path).splitlines(), 1):
@@ -351,10 +360,17 @@ def main():
             cells = [c.strip() for c in line.strip().strip("|").split("|")]
             if len(cells) < 8 or cells[0] in ("", "Дата"):
                 continue
-            who = cells[6]
-            quote = cells[3]
+            if not any(cells):
+                continue
+            who, quote, channel, when = cells[6], cells[3], cells[4], cells[5]
             if who and not quote:
                 problems.append("decisions.md:%d — решение записано, а дословной цитаты решения нет" % number)
+            if who and not channel:
+                problems.append("decisions.md:%d — решение записано, а канала нет" % number)
+            if who and not when:
+                problems.append("decisions.md:%d — решение записано, а даты нет" % number)
+            if who and quote and channel and when:
+                decisions_signed = True
 
     artifact_path = os.path.join(WS, "artifact.md")
     if os.path.exists(artifact_path):
@@ -371,6 +387,11 @@ def main():
                                 % len(open_findings))
             if state_ready is None or state_ready != "да":
                 problems.append("artifact.md — статус «показан человеку», а «Готов к показу» в состоянии не «да»")
+            if state_signature is None:
+                problems.append("artifact.md — артефакт показан без подписи человека в состоянии: показ не разрешён")
+            if not decisions_signed:
+                problems.append("artifact.md — артефакт показан, а в журнале решений нет подписи человека "
+                                "(цитата, канал, дата)")
             judges = glob.glob(os.path.join(WS, "judge-report-*.md"))
             ok = False
             for judge in judges:
