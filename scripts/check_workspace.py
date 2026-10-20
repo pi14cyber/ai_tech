@@ -112,6 +112,7 @@ def main():
     checked = 0
     state_version = None
     state_decision = None
+    state_ready = None
     judge_checker = None
     judge_version = None
     report_outcomes = []
@@ -166,6 +167,8 @@ def main():
         version_field = field(content, "Версия результата")
         if version_field is not None:
             state_version = version_field
+            if not version_field.strip().isdigit():
+                problems.append("state.md — версия результата «%s» не число" % version_field)
         decision_field = field(content, "Решение судьи")
         if decision_field is not None:
             lowered_decision = decision_field.lower()
@@ -178,6 +181,8 @@ def main():
             head = ready.strip().split()[0].strip(".,:;—-").lower()
             if head not in READY_VOCAB:
                 problems.append("state.md — «готов к показу» = «%s» не из да/нет" % ready)
+            else:
+                state_ready = head
             if head == "да":
                 decision = field(content, "Решение судьи")
                 normalized = (decision or "").lower()
@@ -256,6 +261,8 @@ def main():
         version = field(content, "Версия результата")
         judge_version = version
         judge_checker = field(content, "Кто проверял")
+        if version is not None and not version.strip().isdigit():
+            problems.append("%s — версия «%s» не число: сравнение версий невозможно" % (name, version))
         if version is None:
             problems.append("%s — нет привязки к версии результата" % name)
         else:
@@ -267,12 +274,16 @@ def main():
             if state_decision != report_decision:
                 problems.append("%s — решение судьи «%s» против состояния «%s»"
                                 % (name, report_decision, state_decision))
-        result_rows = [line for line in content.splitlines()
-                       if line.strip().startswith("|") and "---" not in line
-                       and not re.match(r"\|\s*Результат", line.strip())
-                       and any(cell.strip() for cell in line.strip().strip("|").split("|")[1:])]
+        result_rows = []
+        for line in content.splitlines():
+            stripped = line.strip()
+            if not stripped.startswith("|") or "---" in stripped:
+                continue
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            if len(cells) >= 2 and cells[-1] and cells[0] not in ("#", ""):
+                result_rows.append(stripped)
         if "Результат" in content and not result_rows:
-            problems.append("%s — ни одной заполненной строки результатов проверки" % name)
+            problems.append("%s — ни одной заполненной строки результатов проверки: колонка «Результат» пуста" % name)
 
     audit_path = os.path.join(WS, "audit-log.md")
     if os.path.exists(audit_path):
@@ -320,6 +331,8 @@ def main():
             problems.append("artifact.md — статус с заглавной буквы: не из словаря")
         status = field(content, "Статус")
         if status and "показан человеку" in status.lower():
+            if state_ready is None or state_ready != "да":
+                problems.append("artifact.md — статус «показан человеку», а «Готов к показу» в состоянии не «да»")
             judges = glob.glob(os.path.join(WS, "judge-report-*.md"))
             ok = False
             for judge in judges:
@@ -330,17 +343,26 @@ def main():
                 problems.append("artifact.md — статус «показан человеку», но нет отчёта судьи с решением «показывать»")
         artifact_version = field(content, "Версия")
         artifact_author = field(content, "Кто собрал")
+        if artifact_version is not None and not artifact_version.strip().isdigit():
+            problems.append("artifact.md — версия «%s» не число" % artifact_version)
         if artifact_version is not None and judge_version is not None \
-                and artifact_version.strip() != judge_version.strip():
+                and artifact_version.strip().isdigit() and judge_version.strip().isdigit() \
+                and int(artifact_version) != int(judge_version):
             problems.append("artifact.md — версия артефакта %s не совпадает с версией в отчёте судьи %s"
                             % (artifact_version.strip(), judge_version.strip()))
         if artifact_version is not None and state_version is not None \
-                and artifact_version.strip() != state_version.strip():
+                and artifact_version.strip().isdigit() and state_version.strip().isdigit() \
+                and int(artifact_version) != int(state_version):
             problems.append("artifact.md — версия артефакта %s не совпадает с версией в состоянии %s"
                             % (artifact_version.strip(), state_version.strip()))
-        if artifact_author is not None and judge_checker is not None \
-                and artifact_author.strip().lower() == judge_checker.strip().lower():
-            problems.append("artifact.md — судья и автор совпадают: нужен другой проход")
+        if artifact_author is not None and judge_checker is not None:
+            author_key = re.sub(r"\([^)]*\)", "", artifact_author.lower()).strip()
+            checker_key = re.sub(r"\([^)]*\)", "", judge_checker.lower()).strip()
+            same = author_key == checker_key
+            if not same and "агент" in author_key and "агент" in checker_key and "другой" not in checker_key:
+                same = True
+            if same:
+                problems.append("artifact.md — судья и автор совпадают: нужен другой проход (человек или другой агент)")
 
     print("файлов проверено: %d" % checked)
     for line in problems:
