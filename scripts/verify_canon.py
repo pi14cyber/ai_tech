@@ -93,12 +93,22 @@ def main():
         problems.append("шаблонов %d, канон говорит %d" % (len(templates), counts["templates"]))
 
     verify = read("scripts/verify.py")
-    check_names = re.findall(r'^\s*\("([^"]+)",\s*"[^"]+\.py"\)', verify, re.MULTILINE)
-    checks = len(check_names)
+    found = re.findall(r'^\s*\("([^"]+)",\s*"([^"]+\.py)"\)', verify, re.MULTILINE)
+    checks = len(found)
+    expected = [tuple(pair) for pair in canon.get("checks_expected", [])]
     if checks != counts["checks"]:
         problems.append("проверок в verify.py %d, канон говорит %d" % (checks, counts["checks"]))
-    if len(set(check_names)) != checks:
-        problems.append("в verify.py есть проверки с одинаковым названием — счёт их не различает")
+    if expected and found != expected:
+        problems.append("список проверок в verify.py не совпадает с каноном: %d против %d"
+                        % (len(found), len(expected)))
+    for name, script in found:
+        path = os.path.join(ROOT, "scripts", script)
+        if not os.path.exists(path):
+            problems.append("verify.py обещает проверку scripts/%s, а её нет" % script)
+            continue
+        body = open(path, encoding="utf-8", errors="replace").read()
+        if len(body) < 400 or "def main" not in body:
+            problems.append("scripts/%s — заглушка вместо проверки" % script)
 
     agents = read("AGENTS.md")
     words = {1: "одно", 2: "два", 3: "трёх", 4: "четырёх", 5: "пяти", 6: "шести",
@@ -118,6 +128,7 @@ def main():
     public.update({("skills/%s/SKILL.md" % d): read("skills/%s/SKILL.md" % d) for d in skills})
     public.update({("templates/%s" % f): read("templates/%s" % f) for f in templates})
     public["templates/README.md"] = read("templates/README.md")
+    public["skills/INDEX.md"] = read("skills/INDEX.md")
     for dirpath, _dirnames, filenames in os.walk(os.path.join(ROOT, "knowledge")):
         for filename in filenames:
             if filename.endswith(".md"):
@@ -125,6 +136,8 @@ def main():
                 public[rel] = read(rel)
 
     for group, phrases in canon["banned"].items():
+        if not phrases:
+            problems.append("Канон — пустая группа запретов «%s»: проверять нечего" % group)
         for phrase in phrases:
             pattern = re.compile(r"(?<![а-яёa-z])" + re.escape(phrase) + r"(?![а-яёa-z])", re.IGNORECASE)
             for name, content in public.items():
@@ -173,9 +186,19 @@ def main():
         if value is None:
             problems.append("Канон — предел «%s» объявлен в limits_where, но не описан в limits" % key)
             continue
+        pattern = canon.get("limits_patterns", {}).get(key)
         for name in where:
-            if not numbers_ok(public.get(name, ""), value):
+            content = public.get(name, "")
+            if pattern is not None:
+                if not re.search(pattern, content, re.IGNORECASE):
+                    problems.append("%s — не назван предел «%s» в правильном контексте (%s)"
+                                    % (name, key, pattern))
+            elif not numbers_ok(content, value):
                 problems.append("%s — не назван предел «%s» = %s" % (name, key, value))
+
+    for key in canon.get("limits", {}):
+        if key not in canon.get("limits_where", {}):
+            problems.append("Канон — предел «%s» никем не проверяется: нет в limits_where" % key)
 
     for path, fields in canon.get("required", {}).items():
         content = public.get(path)

@@ -1,6 +1,37 @@
 {
-  "version": "0.5",
+  "version": "0.9",
   "about": "Единый канон набора: единственный источник чисел, статусов и словарей. Публичные файлы и проверки сверяются с ним; расхождение — код 1. Менять правила только здесь, затем приводить файлы.",
+  "checks_expected": [
+    ["Заметки по источникам", "verify_harness.py"],
+    ["База знаний", "verify_knowledge.py"],
+    ["Внешнее исследование", "verify_research.py"],
+    ["Структура запросов", "verify_requests.py"],
+    ["Состояние запросов", "verify_state.py"],
+    ["Навыки: шапка и имена", "verify_skills.py"],
+    ["Документация и пути", "verify_docs.py"],
+    ["Разделение слоёв", "verify_layers.py"],
+    ["Ссылки в заметках", "verify_notes.py"],
+    ["Адаптеры навыков", "verify_adapters.py"],
+    ["Числа и формы", "verify_consistency.py"],
+    ["Канон: числа и статусы", "verify_canon.py"],
+    ["Артефакты workspace", "check_workspace.py"],
+    ["Песочница", "verify_sandbox.py"]
+  ],
+  "limits_patterns": {
+    "questions_first_session": "пять вопросов|5 вопросов",
+    "questions_per_packet": "шесть вопросов|6 вопросов",
+    "short_request_max": "пять|5",
+    "short_request_min": "3–5|3-5|три",
+    "answer_words_full": "2500",
+    "answer_words_short": "1200",
+    "timebox_hours": "четыр[её]х часов|четыре часа|4 часа",
+    "reworks": "два раза|2 раза|больше двух",
+    "message_words": "80 слов|до 80",
+    "touches_per_week": "десять|10",
+    "silence_hours": "72",
+    "list_people_min": "тридцать|30",
+    "list_people_max": "пятьдесят|50"
+  },
   "counts": {
     "skills": 14,
     "templates": 26,
@@ -58,7 +89,6 @@
     "measure_days": ["skills/00b-telemetry-setup/SKILL.md"],
     "cycle_weeks": ["skills/02-hadi-hypothesis/SKILL.md", "templates/hadi-tracker.md"],
     "question_length": ["AGENTS.md"],
-    "question_length": ["AGENTS.md"],
     "list_people_min": ["skills/06-access/SKILL.md"],
     "list_people_max": ["skills/06-access/SKILL.md"]
   },
@@ -67,7 +97,8 @@
     "old_stop_counts": ["любое из четырёх", "любое из пяти", "из четырёх ниже"],
     "false_stop_words": ["условий выхода четыре", "стоп-условий четыре", "четыре стоп-условия", "условий выхода пять", "пять стоп-условий"],
     "prefilled_human": ["Кто решил: человек", "Показывать / не показывать", "вписывает человек: файлы"],
-    "false_sixteen": ["встреча с датой, интро", "назначенная встреча, интро", "время, репутация, деньги, встреча"]
+    "false_sixteen": ["встреча с датой, интро", "назначенная встреча, интро", "время, репутация, деньги, встреча"],
+    "exception_rules": ["кроме срочных", "за исключением", "кроме случаев", "если очень надо"]
   },
   "canon_rules": {
     "research": "Сеть — только через человека",
@@ -77,6 +108,7 @@
     "stop_canon": "Канон — шесть условий"
   },
   "required": {
+    "skills/INDEX.md": ["state.md", "m2-work-router"],
     "templates/request-short.md": ["Пакет", "Внешний сервис", "Исполнитель запроса"],
     "templates/request-full.md": ["Пакет", "Внешний сервис", "Исполнитель запроса"],
     "templates/prevalidation-report.md": ["Исход ворот", "Пакет"],

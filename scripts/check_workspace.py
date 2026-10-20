@@ -50,7 +50,17 @@ STEP_VOCAB = ("онбординг", "замер", "выбор поля", "гип
 MODE_VOCAB = ("обычный", "только локально")
 CONTOUR_VOCAB = ("внешний", "внутренний")
 READY_VOCAB = ("да", "нет")
+OUTCOMES_ORDER = ("не запускалось", "не прошло", "заблокировано", "прошло")
 LIMITS = {"first": 5, "later": 3}
+
+
+def outcome_of(value):
+    """Исход ворот: сначала «не прошло», потом «прошло» — иначе «не» перебьёт значение."""
+    text = re.sub(r"\s+", " ", (value or "").strip().lower())
+    for outcome in OUTCOMES_ORDER:
+        if text.startswith(outcome):
+            return outcome
+    return None
 
 
 def load_limits():
@@ -80,6 +90,8 @@ def field(content, key):
     lowered = value.lower()
     if value.startswith("(") or "____" in value or "вписать" in lowered or "заполняет" in lowered:
         return None
+    if " / " in value:
+        return None
     return value
 
 
@@ -99,6 +111,8 @@ def main():
 
     problems = []
     checked = 0
+    state_version = None
+    report_outcomes = []
 
     state_path = os.path.join(WS, "state.md")
     if os.path.exists(state_path):
@@ -111,13 +125,16 @@ def main():
         if not any(v in step.lower() for v in STEP_VOCAB):
             problems.append("state.md — текущий шаг «%s» не из словаря" % step)
         marker = os.path.exists(os.path.join(WS, "LOCAL-ONLY"))
-        mode = (field(content, "Режим") or "").lower()
-        if marker and "локально" not in mode:
-            problems.append("state.md — файл LOCAL-ONLY есть, а режим «%s»: расхождение" % mode)
-        if not marker and "локально" in mode:
-            problems.append("state.md — режим «только локально», а файла LOCAL-ONLY нет")
-        if mode and not any(m in mode for m in MODE_VOCAB):
+        mode = re.sub(r"\s+", " ", (field(content, "Режим") or "").strip().lower())
+        if "/" in mode:
+            problems.append("state.md — режим «%s»: не выбран один из двух" % mode)
+            mode = ""
+        if mode and mode not in MODE_VOCAB:
             problems.append("state.md — режим «%s» не из словаря" % mode)
+        if marker and mode and mode != "только локально":
+            problems.append("state.md — файл LOCAL-ONLY есть, а режим «%s»: расхождение" % mode)
+        if not marker and mode == "только локально":
+            problems.append("state.md — режим «только локально», а файла LOCAL-ONLY нет")
         contour = field(content, "Контур")
         if contour and not any(c in contour.lower() for c in CONTOUR_VOCAB):
             problems.append("state.md — контур «%s» не из словаря" % contour)
@@ -133,10 +150,27 @@ def main():
             if int(counter.strip()) > allowed:
                 problems.append("state.md — задано вопросов %s при пределе %d" % (counter.strip(), allowed))
         gate = field(content, "Исход ворот")
-        if gate is not None:
-            head = gate.strip().split()[0].strip(".,:;—-").lower()
-            if head not in OUTCOMES:
-                problems.append("state.md — исход ворот «%s» не из словаря" % gate)
+        for key in ("Исход ворот", "Решение судьи", "Контур", "Версия результата"):
+            if len(re.findall(re.escape(key) + r"[^\n:]*:", content)) > 1:
+                problems.append("state.md — поле «%s» встречается больше одного раза" % key)
+        gate_value = outcome_of(gate) if gate is not None else None
+        if gate is not None and gate_value is None:
+            problems.append("state.md — исход ворот «%s» не из словаря" % gate)
+        if gate_value == "прошло" and not glob.glob(os.path.join(WS, "research", "prevalidation-*.md")):
+            problems.append("state.md — исход ворот «прошло», а отчёта предвалидации нет")
+        if gate_value in ("не прошло", "заблокировано", "не запускалось") \
+                and os.path.exists(os.path.join(WS, "artifact.md")):
+            problems.append("state.md — ворота не пройдены, а артефакт собран")
+        version_field = field(content, "Версия результата")
+        if version_field is not None:
+            state_version = version_field
+        decision_field = field(content, "Решение судьи")
+        if decision_field is not None:
+            lowered_decision = decision_field.lower()
+            if "не показывать" in lowered_decision:
+                state_decision = "не показывать"
+            elif lowered_decision.strip(" .").startswith("показывать"):
+                state_decision = "показывать"
         ready = field(content, "Готов к показу")
         if ready is not None:
             head = ready.strip().split()[0].strip(".,:;—-").lower()
@@ -157,8 +191,10 @@ def main():
         consent = field(content, "Уровень готовности делиться")
         if consent is None:
             problems.append("profile.md — не заполнен уровень готовности делиться данными (вопрос шага 0)")
-        elif not any(v in consent.lower() for v in ("файлы", "метаданные", "ответы", "локально")):
-            problems.append("profile.md — уровень готовности «%s» не из четырёх вариантов" % consent)
+        else:
+            normalized = consent.strip().strip(".:;—-").lower()
+            if normalized not in ("файлы", "метаданные", "только ответы", "ответы", "только локально", "локально"):
+                problems.append("profile.md — уровень готовности «%s» не из четырёх вариантов (меню не ответ)" % consent)
 
     responses = glob.glob(os.path.join(WS, "responses", "*.md"))
     for report in sorted(glob.glob(os.path.join(WS, "research", "prevalidation-*.md"))):
@@ -176,16 +212,34 @@ def main():
                     and "прошло" not in outcome:
                 problems.append("%s — исход не распознан" % name)
             if "прошло" in outcome and "не прошло" not in outcome and "не запускалось" not in outcome:
-                q_lines = re.findall(r"Q\d+\.\d+[^\n]*https?://[^\s)]+[^\n]*\d{2}\.\d{2}\.\d{4}", content)
-                if len(q_lines) < 2:
+                fact_lines = [line for line in content.splitlines()
+                              if re.search(r"Q\d+\.\d+", line) and "http" in line
+                              and re.search(r"\d{2}\.\d{2}\.\d{4}", line)]
+                if len(fact_lines) < 2:
                     problems.append("%s — при исходе «прошло» нужно не меньше двух строк Q с адресом и датой (найдено %d)"
-                                    % (name, len(q_lines)))
+                                    % (name, len(fact_lines)))
+                else:
+                    for fact in fact_lines:
+                        if not re.search(r"https?://\S+", fact):
+                            problems.append("%s — в строке Q нет адреса" % name)
+                        if not re.search(r"\d{2}\.\d{2}\.\d{4}", fact):
+                            problems.append("%s — в строке Q нет даты" % name)
                 if not responses:
                     problems.append("%s — исход «прошло», но ни одного файла ответа нет: ворота не пройдены" % name)
+                else:
+                    for response in responses:
+                        body = read(response)
+                        if len(body) < 100 or not re.search(r"Q\d+\.\d+", body):
+                            problems.append("%s — файл ответа %s пустой или без ответов Q: ворота не пройдены"
+                                            % (name, os.path.basename(response)))
                 if "дип" in content and len(responses) < 2:
                     problems.append("%s — полный запрос, а файлов ответов %d (нужно два)" % (name, len(responses)))
         if "Пакет" not in content:
             problems.append("%s — нет поля «Пакет: N из M»" % name)
+        category_line = re.search(r"Категория запуска:[^\n]*", content)
+        if category_line and "/" not in category_line.group(0) and "дип" in category_line.group(0):
+            if len(responses) < 2:
+                problems.append("%s — категория «дип», а файлов ответов %d (нужно два)" % (name, len(responses)))
 
     for report in sorted(glob.glob(os.path.join(WS, "judge-report-*.md"))):
         checked += 1
@@ -200,6 +254,21 @@ def main():
         version = field(content, "Версия результата")
         if version is None:
             problems.append("%s — нет привязки к версии результата" % name)
+        else:
+            if state_version is not None and version.strip() != state_version.strip():
+                problems.append("%s — версия результата %s не совпадает с состоянием %s"
+                                % (name, version.strip(), state_version.strip()))
+        if state_decision is not None:
+            report_decision = "не показывать" if "не показывать" in normalized else "показывать"
+            if state_decision != report_decision:
+                problems.append("%s — решение судьи «%s» против состояния «%s»"
+                                % (name, report_decision, state_decision))
+        result_rows = [line for line in content.splitlines()
+                       if line.strip().startswith("|") and "---" not in line
+                       and not re.match(r"\|\s*Результат", line.strip())
+                       and any(cell.strip() for cell in line.strip().strip("|").split("|")[1:])]
+        if "Результат" in content and not result_rows:
+            problems.append("%s — ни одной заполненной строки результатов проверки" % name)
 
     audit_path = os.path.join(WS, "audit-log.md")
     if os.path.exists(audit_path):
@@ -210,10 +279,14 @@ def main():
             cells = [c.strip() for c in line.strip().strip("|").split("|")]
             if len(cells) < 6 or cells[0].startswith("#"):
                 continue
-            if cells[0] in ("", "№") or not any(cells):
+            if cells[0] in ("", "№"):
+                if any(cell for cell in cells[1:]):
+                    problems.append("audit-log.md:%d — строка без номера: находка не учтена" % number)
                 continue
             if cells[3] not in CLASSES:
                 problems.append("audit-log.md:%d — класс «%s» не из A/B/C/D" % (number, cells[3]))
+            if cells[3] in ("A", "B") and len(cells) > 4 and not cells[4]:
+                problems.append("audit-log.md:%d — класс %s без адреса «Где (файл:строка)»" % (number, cells[3]))
             if cells[5] not in FINDING:
                 problems.append("audit-log.md:%d — статус «%s» не из словаря" % (number, cells[5]))
             if cells[5] == "проверено":
@@ -239,7 +312,10 @@ def main():
     if os.path.exists(artifact_path):
         checked += 1
         content = read(artifact_path)
-        if "показан человеку" in content:
+        if "Показан человеку" in content:
+            problems.append("artifact.md — статус с заглавной буквы: не из словаря")
+        status = field(content, "Статус")
+        if status and "показан человеку" in status.lower():
             judges = glob.glob(os.path.join(WS, "judge-report-*.md"))
             ok = False
             for judge in judges:
@@ -271,7 +347,9 @@ def self_test():
         os.makedirs(os.path.join(root, "workspace", "research"))
         os.makedirs(os.path.join(root, "workspace", "responses"))
         open(os.path.join(root, "workspace", "responses", "req_01.answer.md"), "w",
-             encoding="utf-8").write("# Ответ\n\nQ1.1: факт\n")
+             encoding="utf-8").write(
+                 "# Ответ\n\nQ1.1: по данным сервиса ставка составляет 12 тысяч рублей в месяц, "
+                 "источник — прайс-лист на сайте, проверено 01.10.2026, ссылка сохранена в отчёте.\n")
     state = (
         "# Состояние\n\n"
         "- **Текущий шаг:** артефакт\n- **Что дальше (один шаг):** ворота\n"
@@ -311,4 +389,8 @@ def self_test():
 if __name__ == "__main__":
     if "--self-test" in sys.argv:
         sys.exit(self_test())
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as error:
+        print("ИТОГ: 2 — проверка не смогла прочитать артефакты: %s" % error)
+        sys.exit(2)

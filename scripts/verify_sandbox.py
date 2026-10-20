@@ -59,6 +59,9 @@ def walk_public(base):
 
 def main():
     if not os.path.isdir(RUN):
+        if os.path.isdir(os.path.join(ROOT, "runs")):
+            print("ИТОГ: 2 — каталог runs/ есть, а песочницы self-01 нет: копия не сверена")
+            return 2
         print("песочницы runs/self-01 нет — проверять нечего")
         print("\nИТОГ: 0 — копии нет")
         return 0
