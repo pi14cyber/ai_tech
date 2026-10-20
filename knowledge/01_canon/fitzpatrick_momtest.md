@@ -2,7 +2,7 @@
 id: canon-fitzpatrick-momtest
 type: book_extract
 evidence_level: [база]
-source_url: "internal/docs/biblio/Sprosi_mamu-_The_Mom_Test-_RU (2).md"
+source_url: "материалы автора набора: Р. Фитцпатрик «Спроси маму» (текст в каталоге источников проекта)"
 date_verified: 2026-10-18
 used_in_skills: [00-onboarding-interview, 03-prevalidation, 05-validation-gate]
 freshness_ttl: forever

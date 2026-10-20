@@ -35,7 +35,7 @@
 | `02_external/networking_practices.md` | ресёрч | **готова** 20.10.2026 из `req_02_access` |
 | `02_external/documents_tools.md` | ресёрч | ждёт ответа на `req_02_documents`, вопросы `Q1.1`–`Q1.6` |
 | `02_external/conversation_practices.md` | ресёрч | ждёт ответа на `req_02_conversation`, вопросы `Q1.1`–`Q1.4` |
-| `02_external/agent_tooling.md` | ресёрч | ждёт повторного прохода по заданию 11: ответ есть, адресов нет; материал — `internal/draft/23_agent_tooling_review.md` |
+| `02_external/agent_tooling.md` | ресёрч | ждёт повторного прохода по заданию 11: ответ есть, адресов нет; материал — внутренний разбор инструментов агента |
 | `03_practices/blind_research_prompts.md` | практика | правила готовы в навыке `03-prevalidation` |
 | `03_practices/pretext_mvp_patterns.md` | практика | нужен живой прогон |
 

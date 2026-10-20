@@ -2,7 +2,7 @@
 id: canon-blank-custdev
 type: book_extract
 evidence_level: [база]
-source_url: "internal/docs/biblio/81d33ce-aa5a-41d3-a554-5360b50c053f.md и Blank-S.-Dorf-B.-StartUp.-Nastolnaya-kniga-osnovatelya.md"
+source_url: "материалы автора набора: С. Бланк «Четыре шага к озарению», С. Бланк и Б. Дорф «Стартовая книга основателя» (в каталоге источников проекта)"
 date_verified: 2026-10-18
 used_in_skills: [01-field-filter, 02-hadi-hypothesis, 05-validation-gate]
 freshness_ttl: forever
@@ -10,7 +10,7 @@ freshness_ttl: forever
 
 # Бланк: последовательность проверки потребителей
 
-Четыре этапа идут параллельно разработке продукта, а не вместо неё. Полная выкладка с номерами строк — в `internal/draft/extracts/blank.md`, разделы 2.2–2.5.
+Четыре этапа идут параллельно разработке продукта, а не вместо неё. Полная выкладка с номерами строк — в рабочей выжимке автора набора, разделы 2.2–2.5.
 
 ## 1. Твёрдые правила
 

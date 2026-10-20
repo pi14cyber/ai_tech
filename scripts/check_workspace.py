@@ -35,6 +35,10 @@ except Exception:
     pass
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if "--root" in sys.argv:
+    index = sys.argv.index("--root")
+    if index + 1 < len(sys.argv):
+        ROOT = os.path.abspath(sys.argv[index + 1])
 WS = os.path.join(ROOT, "workspace")
 OUTCOMES = ("прошло", "не прошло", "заблокировано", "не запускалось")
 JUDGE = ("показывать", "не показывать")

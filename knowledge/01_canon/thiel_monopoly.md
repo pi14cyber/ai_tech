@@ -2,7 +2,7 @@
 id: canon-thiel-monopoly
 type: book_extract
 evidence_level: [база]
-source_url: "internal/docs/biblio/Ot-nulya-k-edynytse.md"
+source_url: "материалы автора набора: П. Тиль «От нуля к единице» (текст в каталоге источников проекта)"
 date_verified: 2026-10-18
 used_in_skills: [01-field-filter, 02-hadi-hypothesis]
 freshness_ttl: forever

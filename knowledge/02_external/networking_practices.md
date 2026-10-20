@@ -2,7 +2,7 @@
 id: ext-networking-practices
 type: publication
 evidence_level: [внешнее]
-source_url: "internal/draft/requests/archive/answers/req_02_access.answer.md"
+source_url: "ответ внешнего исследователя на запрос req_02_access от 20.10.2026 (оригинал в материалах автора набора)"
 date_verified: 2026-10-20
 used_in_skills: [06-access]
 freshness_ttl: 6m

@@ -2,7 +2,7 @@
 id: canon-hadi-cycles
 type: book_extract
 evidence_level: [база]
-source_url: "internal/docs/hadi.md"
+source_url: "материалы автора набора: описание HADI (внутренний каталог проекта)"
 date_verified: 2026-10-19
 used_in_skills: [02-hadi-hypothesis]
 freshness_ttl: forever
