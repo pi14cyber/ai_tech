@@ -149,18 +149,22 @@ def main():
                 problems.append("%s — обещан скрипт scripts/%s, а его нет"
                                 % (os.path.relpath(path, ROOT), script))
 
-    # правило «исследование только через внешние сервисы, на 100%»
+    # правило «сеть — только через человека»: агент ищет локально, по сети только составляет запрос
     agents_path = os.path.join(ROOT, "AGENTS.md")
-    rule = "только через внешние сервисы, на 100%"
+    rule = "Сеть — только через человека"
     if os.path.exists(agents_path) and rule not in open(agents_path, encoding="utf-8").read():
-        problems.append("AGENTS.md — нет правила «исследование %s»" % rule)
+        problems.append("AGENTS.md — нет правила «%s»" % rule)
     skill03 = os.path.join(SKILLS, "03-prevalidation", "SKILL.md")
-    if os.path.exists(skill03) and "только внешний сервис" not in open(skill03, encoding="utf-8").read():
-        problems.append("skills/03-prevalidation — нет правила «канал — только внешний сервис»")
+    if os.path.exists(skill03) and "Агент в сеть не ходит" not in open(skill03, encoding="utf-8").read():
+        problems.append("skills/03-prevalidation — нет правила «агент в сеть не ходит»")
     for name in ("request-short.md", "request-full.md"):
         path = os.path.join(TEMPLATES, name)
-        if os.path.exists(path) and "**Внешний сервис:**" not in open(path, encoding="utf-8").read():
-            problems.append("templates/%s — нет поля «Внешний сервис»" % name)
+        if not os.path.exists(path):
+            continue
+        content = open(path, encoding="utf-8").read()
+        for field in ("**Внешний сервис:**", "**Исполнитель запроса:**"):
+            if field not in content:
+                problems.append("templates/%s — нет поля «%s»" % (name, field.strip("*:")))
 
     print("шаблонов: %d, навыков: %d, файлов проверено: %d" % (count, len(skill_dirs), len(public)))
     for line in problems:
