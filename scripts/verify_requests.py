@@ -29,6 +29,7 @@ except Exception:
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REQ_DIR = os.path.join(ROOT, "internal", "draft", "requests")
 ARCH_DIR = os.path.join(REQ_DIR, "archive")
+RESP_DIR = os.path.join(ROOT, "internal", "draft", "responses")
 FIELDS = ("**Идентификатор:**", "**Дата:**", "**Каналы:**", "**Ответ писать в:**", "**Вопросов:**", "**Состояние:**")
 SECTIONS = (
     "## 1. Границы",
@@ -85,6 +86,20 @@ def main():
             short = declared.group(1).split(" ")[0]
             if short != own:
                 problems.append("%s: идентификатор в шапке «%s» не совпадает с именем файла" % (name, short))
+
+        if os.path.dirname(path) == REQ_DIR:
+            import glob as _glob
+            answers = _glob.glob(os.path.join(RESP_DIR, own + "*.answer.md")) \
+                + _glob.glob(os.path.join(RESP_DIR, "inbox", own + "*.answer.md"))
+            for answer_path in answers:
+                with open(answer_path, "r", encoding="utf-8", errors="replace") as handle:
+                    answer_text = handle.read()
+                status = re.search(r"\*\*Статус обработки:\*\*\s*([^\n]*)", answer_text)
+                status_text = status.group(1).lower() if status else ""
+                if status_text.startswith("принят") or status_text.startswith("отклон"):
+                    problems.append(
+                        "%s: закрытый запрос остался в корне — запусти python scripts/archive_requests.py" % name
+                    )
 
         q_section = re.search(r"##\s*2\.\s*Вопросы(.*?)##\s*3\.", text, re.S)
         body = q_section.group(1) if q_section else ""
