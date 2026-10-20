@@ -154,5 +154,52 @@ def main():
     return 0
 
 
+def self_test():
+    """Самопроверка: на корректном артефакте код 0, на испорченном — 1."""
+    import shutil
+    import subprocess
+
+    base = os.path.join(ROOT, "scripts", "_selftest_ws")
+    ok_root = os.path.join(base, "ok")
+    bad_root = os.path.join(base, "bad")
+    for root in (ok_root, bad_root):
+        os.makedirs(os.path.join(root, "workspace", "research"))
+    state = (
+        "# Состояние\n\n"
+        "- **Текущий шаг:** артефакт\n- **Что дальше (один шаг):** ворота\n"
+        "- **Режим:** обычный\n- **Задано вопросов в сессии:** 4\n"
+        "- **Контур:** внешний\n- **Исход ворот:** прошло\n"
+    )
+    report = (
+        "# Отчёт предвалидации\n\n- **Исход ворот — вписать одно значение:** прошло\n"
+        "- **Пакет:** 1 из 1\n\n"
+        "| Q | Вопрос | Ссылок |\n|---|---|---|\n"
+        "| Q1.1 | вопрос | https://a.example/1 01.10.2026 |\n"
+        "| Q1.2 | вопрос | https://b.example/2 02.10.2026 |\n"
+    )
+    for root in (ok_root, bad_root):
+        open(os.path.join(root, "workspace", "state.md"), "w", encoding="utf-8").write(state)
+        open(os.path.join(root, "workspace", "research", "prevalidation-2026-10-20.md"),
+             "w", encoding="utf-8").write(report)
+    bad_report = os.path.join(bad_root, "workspace", "research", "prevalidation-2026-10-20.md")
+    content = open(bad_report, encoding="utf-8").read().replace(":** прошло", ":** ____", 1)
+    open(bad_report, "w", encoding="utf-8").write(content)
+
+    ok_code = subprocess.run([sys.executable, __file__, "--root", ok_root],
+                             capture_output=True).returncode
+    bad_code = subprocess.run([sys.executable, __file__, "--root", bad_root],
+                              capture_output=True).returncode
+    print("корректный артефакт: код %d (ожидался 0)" % ok_code)
+    print("испорченный артефакт: код %d (ожидался 1)" % bad_code)
+    shutil.rmtree(base, ignore_errors=True)
+    if ok_code == 0 and bad_code == 1:
+        print("\nИТОГ: 0 — самопроверка пройдена")
+        return 0
+    print("\nИТОГ: 2 — самопроверка не пройдена")
+    return 2
+
+
 if __name__ == "__main__":
+    if "--self-test" in sys.argv:
+        sys.exit(self_test())
     sys.exit(main())
