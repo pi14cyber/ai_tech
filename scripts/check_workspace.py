@@ -93,6 +93,21 @@ def field(content, key):
     return value
 
 
+def load_escalation():
+    path = os.path.join(ROOT, "rules", "canon.json")
+    defaults = {"attempts_without_progress": 2, "repeated_blocker_rounds": 2,
+                "regressions_limit": 1, "unknowns_without_source": 3}
+    if not os.path.exists(path):
+        return defaults
+    try:
+        canon = json.load(open(path, encoding="utf-8"))
+        merged = dict(defaults)
+        merged.update(canon.get("escalation", {}))
+        return merged
+    except Exception:
+        return defaults
+
+
 def main():
     global ROOT, WS
     if __name__ == "__main__" and "--root" in sys.argv:
@@ -210,6 +225,42 @@ def main():
                     problems.append("state.md — «готов к показу», но судья сказал «не показывать»")
                 elif not normalized.strip(" .").startswith("показывать"):
                     problems.append("state.md — «готов к показу», но строгого решения судьи «показывать» нет")
+
+        # Внешняя проверка: счётчики триггера против порогов канона
+        thresholds = load_escalation()
+
+        def counter(key):
+            value = field(content, key)
+            if value is None:
+                return 0
+            match = re.search(r"\d+", value)
+            return int(match.group(0)) if match else 0
+
+        rounds = counter("Раундов без прогресса")
+        regressions = counter("Регрессий от последней правки")
+        unknowns = counter("Открытых вопросов без источника")
+        blocker = field(content, "Повторяющийся блокер") or ""
+        blocker_rounds_match = re.search(r"(\d+)\s*(круг|раунд|раз)", blocker.lower())
+        blocker_rounds = int(blocker_rounds_match.group(1)) if blocker_rounds_match else 0
+        triggered = (rounds >= thresholds["attempts_without_progress"]
+                     or regressions >= thresholds["regressions_limit"]
+                     or unknowns >= thresholds["unknowns_without_source"]
+                     or blocker_rounds >= thresholds["repeated_blocker_rounds"])
+        request = field(content, "Запрос составлен")
+        sent = (field(content, "Отправлен человеком") or "").lower()
+        if triggered:
+            if request is None or request.strip().lower() in ("нет", "—", "-", "не составлен"):
+                problems.append("state.md — счётчики внешней проверки превышены, а запрос не составлен "
+                                "(нужен навык m4-external-check)")
+            else:
+                candidate = request.strip().strip("`")
+                found = (os.path.exists(os.path.join(ROOT, candidate))
+                         or os.path.exists(os.path.join(WS, candidate))
+                         or os.path.exists(os.path.join(WS, "requests", os.path.basename(candidate))))
+                if not found:
+                    problems.append("state.md — запрос указан, но файла нет: %s" % request)
+                if not sent.startswith("да"):
+                    problems.append("state.md — запрос составлен, но человеком не отправлен: правки остановлены")
 
     profile_path = os.path.join(WS, "profile.md")
     if os.path.exists(profile_path):
@@ -503,14 +554,31 @@ def self_test():
     content = open(bad_report, encoding="utf-8").read().replace(":** прошло", ":** ____", 1)
     open(bad_report, "w", encoding="utf-8").write(content)
 
+    esc_root = os.path.join(base, "esc")
+    os.makedirs(os.path.join(esc_root, "workspace"))
+    esc_state = state.replace("Исход ворот:** прошло", "Исход ворот:** прошло") + (
+        "- **Раундов без прогресса:** 2\n"
+        "- **Повторяющийся блокер:** 2 круга\n"
+        "- **Регрессий от последней правки:** 0\n"
+        "- **Открытых вопросов без источника:** 0\n"
+        "- **Запрос составлен:** нет\n"
+        "- **Отправлен человеком:** нет\n"
+    )
+    open(os.path.join(esc_root, "workspace", "state.md"), "w", encoding="utf-8").write(esc_state)
+
     ok_code = subprocess.run([sys.executable, __file__, "--root", ok_root],
                              capture_output=True).returncode
     bad_code = subprocess.run([sys.executable, __file__, "--root", bad_root],
                               capture_output=True).returncode
+    esc_run = subprocess.run([sys.executable, __file__, "--root", esc_root],
+                             capture_output=True)
+    esc_code = esc_run.returncode
+    esc_text = esc_run.stdout.decode("utf-8", errors="replace")
     print("корректный артефакт: код %d (ожидался 0)" % ok_code)
     print("испорченный артефакт: код %d (ожидался 1)" % bad_code)
+    print("триггер внешней проверки: код %d (ожидался 1)" % esc_code)
     shutil.rmtree(base, ignore_errors=True)
-    if ok_code == 0 and bad_code == 1:
+    if ok_code == 0 and bad_code == 1 and esc_code == 1 and "внешней проверки" in esc_text:
         print("\nИТОГ: 0 — самопроверка пройдена")
         return 0
     print("\nИТОГ: 2 — самопроверка не пройдена")
