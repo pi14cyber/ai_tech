@@ -561,14 +561,9 @@ def self_test():
 
     esc_root = os.path.join(base, "esc")
     os.makedirs(os.path.join(esc_root, "workspace"))
-    esc_state = state.replace("Исход ворот:** прошло", "Исход ворот:** прошло") + (
-        "- **Раундов без прогресса:** 2\n"
-        "- **Повторяющийся блокер:** 2 круга\n"
-        "- **Регрессий от последней правки:** 0\n"
-        "- **Открытых вопросов без источника:** 0\n"
-        "- **Запрос составлен:** нет\n"
-        "- **Отправлен человеком:** нет\n"
-    )
+    esc_state = (state
+                 .replace("Раундов без прогресса:** 0", "Раундов без прогресса:** 2")
+                 .replace("Повторяющийся блокер:** нет", "Повторяющийся блокер:** 2 круга"))
     open(os.path.join(esc_root, "workspace", "state.md"), "w", encoding="utf-8").write(esc_state)
 
     ok_code = subprocess.run([sys.executable, __file__, "--root", ok_root],
