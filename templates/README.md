@@ -58,10 +58,4 @@
 
 ## Пара «запрос — ответ»
 
-Заготовка ответа не лежит «где-то в шаблонах»: она копируется под конкретный запрос **вместе с ним**.
-
-- Шаблон запроса: `request-short.md` / `request-full.md` → `workspace/requests/<id>.md`.
-- Шаблон ответа: `response-short.md` / `response-full.md` → `workspace/responses/<id>.answer.md`.
-- У проекта те же пары лежат в его внутренних папках того же назначения.
-- В шапке копии ответа сразу заполняются `<id>`, пакет и список `Q` из запроса; остальное — исполнитель.
-- Без созданной заготовки ответа запрос не отправляется (правило `AGENTS.md` §4).
+Заготовка ответа копируется под конкретный запрос **вместе с ним**: `templates/request-short.md`/`request-full.md` → `workspace/requests/<id>.md`; `templates/response-short.md`/`response-full.md` → `workspace/responses/<id>.answer.md`. Полный порядок (триггер → отправка → разбор → архив) — один канон: `skills/m4-external-check`, раздел «Полный пайплайн запроса».

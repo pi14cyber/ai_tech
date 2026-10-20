@@ -38,6 +38,7 @@ CHECKS = (
     ("Канон: числа и статусы", "verify_canon.py"),
     ("Артефакты workspace", "check_workspace.py"),
     ("Песочница", "verify_sandbox.py"),
+    ("Структура описана", "verify_structure.py"),
 )
 
 
