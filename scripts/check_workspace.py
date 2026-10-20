@@ -402,6 +402,13 @@ def main():
                 problems.append("artifact.md — статус «показан человеку», но нет отчёта судьи с решением «показывать»")
         artifact_version = field(content, "Версия")
         artifact_author = field(content, "Кто собрал")
+        artifact_outcome = field(content, "Исход проверки")
+        if artifact_outcome is None:
+            problems.append("artifact.md — не заполнен «Исход проверки»: без него артефакт не считается проверенным")
+        elif status and "показан человеку" in status.lower():
+            failed = outcome_of(artifact_outcome)
+            if failed in ("не прошло", "заблокировано", "не запускалось"):
+                problems.append("artifact.md — артефакт показан при исходе проверки «%s»: показ запрещён" % failed)
         if artifact_version is not None and not artifact_version.strip().isdigit():
             problems.append("artifact.md — версия «%s» не число" % artifact_version)
         if artifact_version is not None and judge_version is not None \
@@ -488,7 +495,11 @@ def self_test():
 
 if __name__ == "__main__":
     if "--self-test" in sys.argv:
-        sys.exit(self_test())
+        try:
+            sys.exit(self_test())
+        except Exception as error:
+            print("ИТОГ: 2 — самопроверка не смогла выполниться: %s" % error)
+            sys.exit(2)
     try:
         sys.exit(main())
     except Exception as error:

@@ -50,6 +50,10 @@ def load(name, filename):
 
 
 def main():
+    if len(sys.argv) > 1:
+        print("ИТОГ: 2 — verify.py не принимает аргументов; --root есть только у отдельных проверок "
+              "(check_workspace.py, verify_canon.py)")
+        return 2
     codes = []
     crashed = set()
     for index, (title, filename) in enumerate(CHECKS):
