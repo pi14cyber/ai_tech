@@ -58,6 +58,9 @@ def walk_public(base):
 
 
 def main():
+    if os.path.islink(RUN) or os.path.realpath(RUN) == os.path.realpath(ROOT):
+        print("ИТОГ: 2 — runs/self-01 является ссылкой на репозиторий: сверка с самой собой невозможна")
+        return 2
     if not os.path.isdir(RUN):
         if os.path.isdir(os.path.join(ROOT, "runs")):
             print("ИТОГ: 2 — каталог runs/ есть, а песочницы self-01 нет: копия не сверена")
