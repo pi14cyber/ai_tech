@@ -8,6 +8,8 @@
 
 ### Q1.1. Адреса источников из ответа по независимости судьи (req_03a)
 
+> **ПОПРАВКА 21.10.2026.** Утверждения этого ответа о «синтетических» идентификаторах неверны как минимум для arXiv 2608.27646v1, ФРС SR 26-2, ISO 9001:2026 и главы 7 CDC ACIP GRADE Handbook: человек скачал копии 21.10.2026, документы существуют (см. `knowledge/02_external/source_addresses.md`). Ответ оставлен как исторический след разбора; его счёт «21 подтверждён / 15 синтетических» не использовать.
+
 • Факты за:
 	• FRB Supervisory Letter SR 11-7 (Supervisory Guidance on Model Risk Management) — стандарт ФРС США — FRB SR 11-7 PDF — 04.04.2011 — проверен 20.10.2026.
 	• NIST SP 800-53 Rev. 5 (Security and Privacy Controls for Information Systems and Organizations, Control AC-5 «Separation of Duties») — стандарт NIST — NIST SP 800-53 Rev. 5 DOI/URL — 23.09.2020 (обновление 10.12.2020) — проверен 20.10.2026.
