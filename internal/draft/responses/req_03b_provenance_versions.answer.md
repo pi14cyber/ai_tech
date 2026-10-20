@@ -4,6 +4,7 @@
 Ответ на запрос req_03b_provenance_versions
 
 Идентификатор: req_03b_provenance_versions [cite: 8]
+**Статус обработки:** в очереди (адресов нет / ждёт отправки)
 Дата выполнения: 20.10.2026 [cite: 8]
 Категория: быстрая (Пакет: 1 из 1) [cite: 8]
 Состояние: отвечено 5 из 5 [cite: 8]
@@ -67,6 +68,7 @@
 
 
 Идентификатор	Статус	Число источников
+**Статус обработки:** в очереди (адресов нет / ждёт отправки)
 Q1.1	отвечено	5 (W3C PROV-DM, in-toto Specs, in-toto GitHub v1.2, SLSA v1.0 Provenance, Secure Pipelines 2026)
 Q1.2	отвечено	4 (in-toto v1.2, SLSA v1.0 Provenance, arXiv:2610.21063v1, Palo Alto Unit 42)
 Q1.3	отвечено	3 (IETF RFC 9162, Sigstore Security Model, Sigstore FAQ)

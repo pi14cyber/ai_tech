@@ -3,6 +3,7 @@
 Ответ на запрос req_03c_evidence_grading
 
 Идентификатор: req_03c_evidence_grading [cite: 9]
+**Статус обработки:** в очереди (адресов нет / ждёт отправки)
 Дата выполнения: 20.10.2026 [cite: 9]
 Категория: быстрая (Пакет: 1 из 1) [cite: 9]
 Состояние: отвечено 5 из 5 [cite: 9]
@@ -74,6 +75,7 @@
 
 
 Идентификатор	Статус	Число источников
+**Статус обработки:** в очереди (адресов нет / ждёт отправки)
 Q1.1	отвечено	10 (GRADEpro Handbook, Cochrane Ch. 14, CDC ACIP GRADE Ch. 7, GRADE Book Overview, OCEBM v2.1, CEBM Intro PDF, ODNI ICD 203, Pangea Research, Itamar Gilad Confidence Meter, Aakash Gupta 2024, PMC2981887)
 Q1.2	отвечено	4 (JCE ScienceDirect 2024, PubMed 35273045, Roadmap.one PSF/PMF, ResearchGate 414805811 Sep 2026)
 Q1.3	отвечено	4 (The Mom Test Inkubator PDF, The Mom Test Bookey PDF, LinkedIn Khaled 2025, Itamar Gilad Confidence Meter)
