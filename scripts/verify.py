@@ -34,6 +34,7 @@ CHECKS = (
     ("Разделение слоёв", "verify_layers.py"),
     ("Ссылки в заметках", "verify_notes.py"),
     ("Адаптеры навыков", "verify_adapters.py"),
+    ("Числа и формы", "verify_consistency.py"),
 )
 
 

@@ -31,7 +31,8 @@ except Exception:
     pass
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TARGETS = ["AGENTS.md", "METHODOLOGY.md", "README.md"]
+TARGETS = ["AGENTS.md", "METHODOLOGY.md", "README.md", "START.md", "GLOSSARY.md",
+           "skills/INDEX.md", "templates/README.md"]
 SKIP_PREFIXES = ("workspace/", "internal/", "http", "mailto:")
 TOKEN_RE = re.compile(r"`([^`\n]+)`")
 PATH_END_RE = re.compile(r"(\.md|\.py|\.template|/)$")
