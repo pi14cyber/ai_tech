@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Проверка канона: числа, статусы и запрещённые формулировки в публичных файлах.
+"""Проверка канона: числа, статусы, запрещённые формулировки и целостность проверок.
 
 Зачем: четыре круга аудита показали один и тот же корень — правило живёт в
 нескольких файлах и расходится при каждой правке. Канон `rules/canon.json` —
@@ -9,19 +9,39 @@
 в одном месте и забыл остальные, узнаёт об этом сразу.
 
 Что проверяет:
- 1. Числа: навыки, шаблоны, проверки, стоп-условия — диск против канона.
- 2. Запрещённые синонимы: «провалилось», старые числа стоп-условий,
+ 1. **Целостность канона.** Обязательные ключи: версия, счётчики, все ключи
+    статусов, все десять правил `canon_rules`, все шесть групп запретов
+    (непустые), все пять порогов внешней проверки, обязательные пределы и
+    каждый ключ `limits`/`limits_where`/`limits_patterns` на своём месте.
+    Канон, из которого ключ вычищен, — код 2 «канон очищен», а не 0.
+ 2. **Манифест хешей `rules/check_hashes.json`.** Для каждого файла проверки из
+    `canon.checks_expected` и для `scripts/verify.py` записана sha256 его тела.
+    Расхождение — код 1 «тело проверки изменено без обновления манифеста»;
+    нет манифеста или в нём нет ключа — код 2. Обновление манифеста (после
+    осознанной правки проверки): `python scripts/verify_canon.py --write-hashes`,
+    затем `python scripts/sync_sandbox.py` — песочница должна совпасть.
+ 3. Числа: навыки, шаблоны, проверки, стоп-условия — диск против канона.
+    Контекстные значения пределов (`limits_values`) сверяются во всех вхождениях,
+    а не только фактом присутствия: «три часа» внутри правила при каноне «четыре» —
+    расхождение (p2 круга 9), а не «слово рядом есть».
+ 4. Запрещённые синонимы: «провалилось», старые числа стоп-условий,
     предзаполненные человеческие решения, ложный 16+ «встреча с датой».
- 3. Статусы: словари артефакта, проверки, обязательства, находок, судьи,
+ 5. Статусы: словари артефакта, проверки, обязательств, находок, судьи,
     классов доказательств и вердиктов присутствуют в тех файлах, где работают.
- 4. Ключевые правила: сеть только через человека, агент в сеть не ходит,
-    одно правило BUILD, пакеты с Q1.1, канон стоп-условий.
+ 6. Ключевые правила: сеть только через человека, агент в сеть не ходит,
+    одно правило BUILD, пакеты с Q1.1, канон стоп-условий, контур, подпись,
+    версия результата, внешняя проверка, источники без кода.
 
-Чего не проверяет: смысл формулировок, логику маршрута, содержимое workspace.
+Чего не проверяет: смысл формулировок, логику маршрута, содержимое workspace,
+совпадение текста правил с живой практикой (сеть запрещена). Манифест хешей
+ловит подмену тела проверки только до тех пор, пока его не переписали тем же
+флагом `--write-hashes`: он фиксирует факт правки, а не право её делать.
 
-Коды: 0 — канон сходится; 1 — расхождения; 2 — нет канона или он битый.
+Коды: 0 — канон сходится; 1 — расхождения; 2 — нет канона, он битый, канон
+очищен или манифест хешей неполон.
 """
 
+import hashlib
 import json
 import os
 import re
@@ -34,6 +54,38 @@ except Exception:
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CANON = os.path.join(ROOT, "rules", "canon.json")
+HASHES = os.path.join(ROOT, "rules", "check_hashes.json")
+
+# Обязательные ключи канона: удаление любого — код 2, а не «проверять нечего».
+REQUIRED_COUNTS = ("skills", "templates", "checks", "stop_conditions")
+REQUIRED_RULES = ("research", "network_agent", "gate_single", "packets", "stop_canon",
+                  "escalation", "sources", "contour", "signature", "version")
+REQUIRED_STATUSES = ("outcomes", "artifact", "check", "obligation", "finding", "judge",
+                     "evidence_classes", "verdicts", "assumption", "contour")
+REQUIRED_BANNED = ("outcome_synonyms", "old_stop_counts", "false_stop_words",
+                   "prefilled_human", "false_sixteen", "exception_rules")
+REQUIRED_ESCALATION = ("attempts_without_progress", "repeated_blocker_rounds",
+                       "regressions_limit", "unknowns_without_source", "unresolved_hours")
+REQUIRED_LIMITS = ("questions_first_session", "questions_later", "questions_per_packet",
+                   "short_request_min", "short_request_max", "full_request_max",
+                   "answer_words_short", "answer_words_full", "timebox_hours", "reworks",
+                   "message_words", "touches_per_week", "silence_hours",
+                   "contacts_per_sprint", "measure_days", "cycle_weeks", "question_length",
+                   "list_people_min", "list_people_max")
+# Токен числа в шаблонах limits_values: цифры и числительные в падежах, которые
+# встречаются в текстах. Место подстановки в шаблоне канона — NUM.
+NUMBER_TOKEN = (r"\d+|один|одного|два|двух|три|трёх|трех|четыре|четырёх|четырех|"
+                r"пять|пяти|шесть|шести|семь|семи|восемь|восьми|девять|девяти|"
+                r"десять|десяти|одиннадцать|одиннадцати|двенадцать|двенадцати|"
+                r"тринадцать|тринадцати|четырнадцать|четырнадцати|пятнадцать|пятнадцати")
+NUMBER_WORDS = {"один": 1, "одного": 1, "два": 2, "двух": 2, "три": 3, "трёх": 3,
+                "трех": 3, "четыре": 4, "четырёх": 4, "четырех": 4, "пять": 5,
+                "пяти": 5, "шесть": 6, "шести": 6, "семь": 7, "семи": 7, "восемь": 8,
+                "восьми": 8, "девять": 9, "девяти": 9, "десять": 10, "десяти": 10,
+                "одиннадцать": 11, "одиннадцати": 11, "двенадцать": 12,
+                "двенадцати": 12, "тринадцать": 13, "тринадцати": 13,
+                "четырнадцать": 14, "четырнадцати": 14, "пятнадцать": 15,
+                "пятнадцати": 15}
 
 
 def read(rel):
@@ -60,15 +112,237 @@ def numbers_ok(content, value):
     return text in content
 
 
+def number_value(token):
+    """Число из цифры или числительного; None, если токен не распознан."""
+    token = (token or "").strip().lower()
+    if token.isdigit():
+        return int(token)
+    return NUMBER_WORDS.get(token)
+
+
+def declaration_errors(canon):
+    """Обязательные ключи канона. Пустой список — канон цел, иначе код 2."""
+    errors = []
+
+    def need_block(container, name):
+        if not isinstance(container, dict):
+            errors.append("блока «%s»" % name)
+            return None
+        return container
+
+    version = canon.get("version")
+    if not isinstance(version, str) or not version.strip():
+        errors.append("version")
+    elif not re.match(r"^\d+\.\d+$", version.strip()):
+        errors.append("version (не вида N.N)")
+
+    counts = need_block(canon.get("counts"), "counts")
+    if counts is not None:
+        for key in REQUIRED_COUNTS:
+            value = counts.get(key)
+            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+                errors.append("counts.%s" % key)
+
+    rules = need_block(canon.get("canon_rules"), "canon_rules")
+    if rules is not None:
+        for key in REQUIRED_RULES:
+            value = rules.get(key)
+            if not isinstance(value, str) or not value.strip():
+                errors.append("canon_rules.%s" % key)
+
+    statuses = need_block(canon.get("statuses"), "statuses")
+    if statuses is not None:
+        for key in REQUIRED_STATUSES:
+            value = statuses.get(key)
+            if not isinstance(value, list) or not [v for v in value if str(v).strip()]:
+                errors.append("statuses.%s" % key)
+
+    banned = need_block(canon.get("banned"), "banned")
+    if banned is not None:
+        for key in REQUIRED_BANNED:
+            value = banned.get(key)
+            if not isinstance(value, list) or not [v for v in value if str(v).strip()]:
+                errors.append("banned.%s" % key)
+
+    escalation = need_block(canon.get("escalation"), "escalation")
+    if escalation is not None:
+        for key in REQUIRED_ESCALATION:
+            value = escalation.get(key)
+            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+                errors.append("escalation.%s" % key)
+
+    limits = need_block(canon.get("limits"), "limits")
+    limits_where = need_block(canon.get("limits_where"), "limits_where")
+    limits_required = canon.get("limits_required")
+    patterns = canon.get("limits_patterns")
+    if not isinstance(limits_required, list) or not [v for v in limits_required if str(v).strip()]:
+        errors.append("limits_required (пустой список: ни один предел не обязателен)")
+        limits_required = []
+    if patterns is not None and not isinstance(patterns, dict):
+        errors.append("limits_patterns (не словарь)")
+        patterns = {}
+    for key in REQUIRED_LIMITS:
+        if limits is not None and key not in limits:
+            errors.append("limits.%s" % key)
+        if limits_where is not None and key not in limits_where:
+            errors.append("limits_where.%s" % key)
+        if key not in limits_required:
+            errors.append("limits_required.%s" % key)
+    if limits is not None and limits_where is not None:
+        for key in limits:
+            if key not in limits_where:
+                errors.append("limits_where.%s" % key)
+        for key in limits_where:
+            if key not in limits:
+                errors.append("limits.%s" % key)
+    if limits_where is not None:
+        for key, where in limits_where.items():
+            if not isinstance(where, list) or not [w for w in where if str(w).strip()]:
+                errors.append("limits_where.%s (пустой список файлов)" % key)
+    if patterns:
+        for key, pattern in patterns.items():
+            if limits is not None and key not in limits:
+                errors.append("limits_patterns.%s (предела нет в limits)" % key)
+                continue
+            if not isinstance(pattern, str) or not pattern.strip():
+                errors.append("limits_patterns.%s (пустой шаблон)" % key)
+                continue
+            try:
+                re.compile(pattern)
+            except re.error:
+                errors.append("limits_patterns.%s (шаблон не компилируется)" % key)
+
+    values = canon.get("limits_values")
+    if not isinstance(values, dict) or not values:
+        errors.append("limits_values (нет контекстных шаблонов значений пределов)")
+    else:
+        for key, pattern in values.items():
+            if limits is not None and key not in limits:
+                errors.append("limits_values.%s (предела нет в limits)" % key)
+                continue
+            if not isinstance(pattern, str) or not pattern.strip():
+                errors.append("limits_values.%s (пустой шаблон)" % key)
+                continue
+            try:
+                compiled = re.compile(pattern.replace("NUM", NUMBER_TOKEN), re.IGNORECASE)
+            except re.error:
+                errors.append("limits_values.%s (шаблон не компилируется)" % key)
+                continue
+            if "num" not in compiled.groupindex:
+                errors.append("limits_values.%s (нет группы num для значения)" % key)
+
+    checks_expected = canon.get("checks_expected")
+    if not isinstance(checks_expected, list) or not checks_expected:
+        errors.append("checks_expected (пустой список проверок)")
+    elif counts is not None and counts.get("checks") != len(checks_expected):
+        errors.append("checks_expected (длина не равна counts.checks)")
+    else:
+        for entry in checks_expected:
+            if not isinstance(entry, (list, tuple)) or len(entry) < 2 \
+                    or not str(entry[1]).strip().endswith(".py"):
+                errors.append("checks_expected (запись без имени скрипта .py)")
+
+    return errors
+
+
+def hash_targets(canon):
+    """Файлы, чьё тело обязано быть зафиксировано: проверки из канона + вход."""
+    targets = ["scripts/verify.py"]
+    for entry in canon.get("checks_expected") or []:
+        if isinstance(entry, (list, tuple)) and len(entry) >= 2:
+            target = "scripts/" + str(entry[1]).strip()
+            if target not in targets:
+                targets.append(target)
+    return targets
+
+
+def sha256_of(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def write_hashes(canon):
+    """Записать манифест хешей: фиксирует текущее тело проверок."""
+    targets = hash_targets(canon)
+    if len(targets) < 2:
+        print("ИТОГ: 2 — канон очищен: нет обязательного ключа «checks_expected»")
+        return 2
+    missing = [t for t in targets if not os.path.isfile(os.path.join(ROOT, *t.split("/")))]
+    if missing:
+        print("ИТОГ: 2 — нечего хешировать: нет файла %s" % missing[0])
+        return 2
+    data = {
+        "about": "sha256 тела каждой машинной проверки. Меняешь проверку — осознанно "
+                 "запусти python scripts/verify_canon.py --write-hashes и синхронизируй песочницу.",
+        "algorithm": "sha256",
+        "files": {target: sha256_of(os.path.join(ROOT, *target.split("/"))) for target in targets},
+    }
+    with open(HASHES, "w", encoding="utf-8", newline="\n") as handle:
+        json.dump(data, handle, ensure_ascii=False, indent=2)
+        handle.write("\n")
+    print("манифест хешей записан: rules/check_hashes.json, файлов %d" % len(targets))
+    print("ИТОГ: 0 — тело проверок зафиксировано; теперь python scripts/sync_sandbox.py")
+    return 0
+
+
+def manifest_errors(canon):
+    """Проверка манифеста. Возвращает (ошибки декларации — код 2, расхождения — код 1)."""
+    declared, problems = [], []
+    if not os.path.exists(HASHES):
+        declared.append("нет манифеста rules/check_hashes.json — тело проверок не "
+                        "зафиксировано (создай: python scripts/verify_canon.py --write-hashes)")
+        return declared, problems
+    try:
+        data = json.load(open(HASHES, encoding="utf-8"))
+    except Exception as error:
+        declared.append("манифест rules/check_hashes.json не читается: %s" % error)
+        return declared, problems
+    if data.get("algorithm") not in (None, "sha256"):
+        declared.append("манифест rules/check_hashes.json: алгоритм «%s» вместо sha256"
+                        % data.get("algorithm"))
+        return declared, problems
+    files = data.get("files")
+    if not isinstance(files, dict) or not files:
+        declared.append("манифест rules/check_hashes.json пуст: нет карты «files»")
+        return declared, problems
+    targets = hash_targets(canon)
+    for target in targets:
+        if target not in files:
+            declared.append("в манифесте нет ключа «%s»: проверка не зафиксирована" % target)
+    for key in files:
+        if key not in targets:
+            declared.append("в манифесте лишний ключ «%s»: такой проверки нет в verify.py" % key)
+    if declared:
+        return declared, problems
+    for target in targets:
+        path = os.path.join(ROOT, *target.split("/"))
+        if not os.path.isfile(path):
+            continue  # отсутствие файла ловится отдельно и другим кодом
+        actual = sha256_of(path)
+        if actual != str(files[target]).strip().lower():
+            problems.append("тело проверки изменено без обновления манифеста: %s "
+                            "(обнови: python scripts/verify_canon.py --write-hashes, затем sync_sandbox.py)"
+                            % target)
+    return declared, problems
+
+
 def main():
-    global ROOT, CANON
-    if __name__ == "__main__" and "--root" in sys.argv:
-        index = sys.argv.index("--root")
-        if index + 1 >= len(sys.argv):
+    global ROOT, CANON, HASHES
+    argv = sys.argv[1:]
+    write_mode = False
+    if __name__ == "__main__" and "--root" in argv:
+        index = argv.index("--root")
+        if index + 1 >= len(argv):
             print("ИТОГ: 2 — параметр --root без значения")
             return 2
-        ROOT = os.path.abspath(sys.argv[index + 1])
+        ROOT = os.path.abspath(argv[index + 1])
         CANON = os.path.join(ROOT, "rules", "canon.json")
+        HASHES = os.path.join(ROOT, "rules", "check_hashes.json")
+    if __name__ == "__main__" and "--write-hashes" in argv:
+        write_mode = True
     if not os.path.exists(CANON):
         print("ИТОГ: 2 — нет канона rules/canon.json")
         return 2
@@ -77,12 +351,25 @@ def main():
     except Exception as error:
         print("ИТОГ: 2 — канон не читается: %s" % error)
         return 2
+    if not isinstance(canon, dict):
+        print("ИТОГ: 2 — канон не словарь: проверять нечего")
+        return 2
+
+    declared = declaration_errors(canon)
+    if write_mode:
+        if declared:
+            print("ИТОГ: 2 — канон очищен: нет обязательного ключа «%s» (манифест не записан)"
+                  % declared[0])
+            return 2
+        return write_hashes(canon)
+    if declared:
+        for key in declared:
+            print("КАНОН ОЧИЩЕН: нет обязательного ключа «%s»" % key)
+        print("\nИТОГ: 2 — канон очищен: нет обязательного ключа «%s» (%d)"
+              % (declared[0], len(declared)))
+        return 2
 
     problems = []
-    for key in ("counts", "limits", "statuses", "banned", "canon_rules"):
-        if key not in canon:
-            print("ИТОГ: 2 — канон сломан: нет блока «%s»" % key)
-            return 2
     counts = canon["counts"]
 
     skills = [d for d in os.listdir(os.path.join(ROOT, "skills"))
@@ -99,12 +386,21 @@ def main():
     verify = read("scripts/verify.py")
     found = re.findall(r'^\s*\("([^"]+)",\s*"([^"]+\.py)"\)', verify, re.MULTILINE)
     checks = len(found)
-    expected = [tuple(pair) for pair in canon.get("checks_expected", [])]
+    expected = [tuple(pair) for pair in canon["checks_expected"]]
     if checks != counts["checks"]:
         problems.append("проверок в verify.py %d, канон говорит %d" % (checks, counts["checks"]))
     if expected and found != expected:
         problems.append("список проверок в verify.py не совпадает с каноном: %d против %d"
                         % (len(found), len(expected)))
+
+    hash_declared, hash_problems = manifest_errors(canon)
+    if hash_declared:
+        for line in hash_declared:
+            print("МАНИФЕСТ: %s" % line)
+        print("\nИТОГ: 2 — манифест хешей неполон: %s" % hash_declared[0])
+        return 2
+    problems.extend(hash_problems)
+
     bodies = {}
     for name, script in found:
         path = os.path.join(ROOT, "scripts", script)
@@ -129,6 +425,12 @@ def main():
     expected = words[counts["stop_conditions"]]
     if ("любое из %s" % expected) not in agents:
         problems.append("AGENTS.md — нет «любое из %s» в стоп-условиях" % expected)
+
+    changelog = read("CHANGELOG.md")
+    version = canon["version"].strip()
+    if not re.search(r"(?<![\d.])" + re.escape(version) + r"(?![\d.])", changelog):
+        problems.append("Канон — версия «%s» не названа ни в одном выпуске CHANGELOG.md: "
+                        "версию канона не с чем сверить" % version)
 
     public = {
         "AGENTS.md": agents,
@@ -166,6 +468,8 @@ def main():
     require("skills/05-validation-gate/SKILL.md", rules["gate_single"])
     require("skills/03-prevalidation/SKILL.md", rules["packets"])
     require("skills/00-onboarding-interview/SKILL.md", rules["stop_canon"])
+    require("AGENTS.md", rules["escalation"])
+    require("AGENTS.md", rules["sources"])
     require("AGENTS.md", rules["contour"])
     require("AGENTS.md", rules["signature"])
     require("AGENTS.md", rules["version"])
@@ -198,12 +502,12 @@ def main():
             if not numbers_ok(public.get(name, ""), value):
                 problems.append("%s — нет предела %s" % (name, value))
 
-    for key, where in canon.get("limits_where", {}).items():
+    for key, where in canon["limits_where"].items():
         value = canon["limits"].get(key)
         if value is None:
             problems.append("Канон — предел «%s» объявлен в limits_where, но не описан в limits" % key)
             continue
-        pattern = canon.get("limits_patterns", {}).get(key)
+        pattern = canon["limits_patterns"].get(key)
         for name in where:
             content = public.get(name, "")
             if pattern is not None:
@@ -213,13 +517,28 @@ def main():
             elif not numbers_ok(content, value):
                 problems.append("%s — не назван предел «%s» = %s" % (name, key, value))
 
-    for key in canon.get("limits_required", []):
-        if key not in canon.get("limits", {}) or key not in canon.get("limits_where", {}):
-            problems.append("Канон — обязательный предел «%s» удалён из limits или limits_where: правило нельзя проверить" % key)
+    # Значение предела сверяется во всех вхождениях шаблона, а не только фактом
+    # присутствия: «три часа» внутри правила при каноне «четыре» — расхождение.
+    for key, pattern in canon["limits_values"].items():
+        canonical = canon["limits"].get(key)
+        if isinstance(canonical, str):
+            continue  # предел записан диапазоном — сравнивать не с чем
+        regex = re.compile(pattern.replace("NUM", NUMBER_TOKEN), re.IGNORECASE)
+        for name in canon["limits_where"].get(key, []):
+            content = public.get(name, "")
+            for match in regex.finditer(content):
+                got = number_value(match.group("num"))
+                if got is None:
+                    problems.append("%s — не удалось прочитать число предела «%s»: %r"
+                                    % (name, key, " ".join(match.group(0).split())))
+                elif got != canonical:
+                    problems.append("%s — предел «%s» назван как %s, канон говорит %s (%s)"
+                                    % (name, key, got, canonical,
+                                       " ".join(match.group(0).split())[:70]))
 
-    for key in canon.get("limits", {}):
-        if key not in canon.get("limits_where", {}):
-            problems.append("Канон — предел «%s» никем не проверяется: нет в limits_where" % key)
+    for key in canon["limits_required"]:
+        if key not in canon["limits"] or key not in canon["limits_where"]:
+            problems.append("Канон — обязательный предел «%s» удалён из limits или limits_where: правило нельзя проверить" % key)
 
     for path, fields in canon.get("required", {}).items():
         content = public.get(path)

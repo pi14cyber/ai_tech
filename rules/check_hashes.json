@@ -1,0 +1,22 @@
+{
+  "about": "sha256 тела каждой машинной проверки. Меняешь проверку — осознанно запусти python scripts/verify_canon.py --write-hashes и синхронизируй песочницу.",
+  "algorithm": "sha256",
+  "files": {
+    "scripts/verify.py": "01df2122e7f5fe4acc206ee0f286664970e850d4e434bbef62d3d87f80e8045f",
+    "scripts/verify_harness.py": "829cd57c0c78bffb7bbc0feafe247d28d7b8f72bf8db27c934ad250d976996cf",
+    "scripts/verify_knowledge.py": "1cda368690fe56808afd0b45dbfe808054c6fccf980c96bc5981957680c0b283",
+    "scripts/verify_research.py": "a8bb87dc75c0224fdcc9091bb5f7a6f0d021fb5f5586e541ac4a3a59c7558029",
+    "scripts/verify_requests.py": "bbb64137c93fa0cdfa63156d3bb3cb2940e5c8c4a6c501cf8b50749cf8cc6b10",
+    "scripts/verify_state.py": "b77313723181234b65e95f65b5ad50a39db727f15af3a3040691f7f0b9344193",
+    "scripts/verify_skills.py": "bff8569fc40d234e2524b706c8282bf8b01983639d1fd9e2c42bd0e220046a13",
+    "scripts/verify_docs.py": "5c207b2250d85017bc05f1ca440d47b217a3ac0135741228fd4c5eee0675917f",
+    "scripts/verify_layers.py": "d78ca1fd267c82107bee5df878fc25b6ede297ec3a5e502788831b7d3e06d435",
+    "scripts/verify_notes.py": "169bbfb9952a812feba08062283d49711720afc46f00ec1a57ef14810ab08e53",
+    "scripts/verify_adapters.py": "744870dc208900b9cb9768b9bad9c425864ff2220f6e6be6f1c05502fc3aff80",
+    "scripts/verify_consistency.py": "dd2bb98393ff16a8b8fc01a73c0f5bf6923a6db50388ddf27944dde5ecf09183",
+    "scripts/verify_canon.py": "4c025ded5be6066338eac73ec3ae233756ba0709686603d59630e5e18680bd31",
+    "scripts/check_workspace.py": "0ff99b697638f897380a293323d5d7ad16eec2146a1e3d3f1bdb3626aa716a59",
+    "scripts/verify_sandbox.py": "83a867af7a2da70a2fe82940eb098e85c33102290fd6d50c9ef1c69145cf245b",
+    "scripts/verify_structure.py": "b2d74f5e63a10d16492889712e03e714f6e2b875cd889aeb262010c41f5b0cbf"
+  }
+}

@@ -81,6 +81,14 @@
     "assumption": ["UNTESTED", "WEAKENED", "SUPPORTED", "KILLED"],
     "contour": ["внешний", "внутренний"]
   },
+  "limits_values": {
+    "questions_first_session": "(?:первая сессия|первой сессии|в первой)[^\\n]{0,30}?(?P<num>NUM)[ \\t]+вопрос",
+    "questions_per_packet": "(?:больше)[ \\t]+(?P<num>NUM)[ \\t]+вопрос",
+    "answer_words_full": "(?P<num>NUM)[ \\t]+слов",
+    "timebox_hours": "(?:не дольше|максимум|таймбокс[^\\n]{0,40}?|до)[ \\t]+(?P<num>NUM)[ \\t]+час",
+    "message_words": "(?:до|не больше)[ \\t]+(?P<num>NUM)[ \\t]+слов",
+    "silence_hours": "(?P<num>NUM)[ \\t]+час\\w*"
+  },
   "limits_where": {
     "questions_first_session": ["AGENTS.md", "START.md", "METHODOLOGY.md", "skills/00-onboarding-interview/SKILL.md", "templates/state.md"],
     "questions_later": ["AGENTS.md", "START.md", "METHODOLOGY.md", "skills/00-onboarding-interview/SKILL.md", "templates/state.md"],

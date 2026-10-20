@@ -28,7 +28,7 @@
 | `prevalidation-report.md` | агент после разбора ответа | `workspace/research/prevalidation-<дата>.md` |
 | `request-short.md` | агент перед быстрой предвалидацией | `workspace/requests/` |
 | `request-full.md` | агент перед полной предвалидацией | `workspace/requests/` |
-| `research-response.md` | внешний исследователь по заданию (общая форма) | `workspace/responses/` |
+| `research-response.md` | не копируется: форма устарела | актуальные формы — `response-short.md` и `response-full.md` |
 | `response-short.md` | внешний исследователь по короткому запросу, затем агент разбирает | `workspace/responses/` |
 | `response-full.md` | внешний исследователь по полному запросу (два канала), затем агент сводит | `workspace/responses/` |
 | `source-conflicts.md` | агент, когда источники спорят | `workspace/source-conflicts.md` |

@@ -13,7 +13,12 @@
 3. Идентификатор в шапке совпадает с именем файла.
 4. Вопросы пронумерованы подряд от `Q1.1`, их не больше шести.
 5. Нет ссылок на другие запросы: запрос обязан быть самостоятельным.
-6. У каждого запроса в корне есть заготовка ответа; закрытый запрос в корне — код 1.
+6. У каждого запроса в корне есть заготовка ответа (`<id>*.answer.md` или
+   `<id>*.resp.md`); закрытый запрос в корне — код 1. «Закрыт» — один предикат
+   с `archive_requests.py`: «Статус обработки» принят или отклонён независимо от
+   звёздочек вокруг поля.
+7. Число `**Вопросов:**` в шапке сверяется с числом блоков `### Q1.N` в разделе 2:
+   объявленный ноль при живых блоках — код 1.
 
 Слои: проект — `internal/draft/requests` + `internal/draft/responses`; человек —
 `workspace/requests` + `workspace/responses`. Если папок человека нет, слой
@@ -21,7 +26,8 @@
 
 Чего не проверяет: смысл вопросов, качество ответов (это `verify_research.py`),
 содержимое архива по существу. Не проверяет, что человек действительно отправил
-запрос: это внешний факт, доступный только человеку.
+запрос: это внешний факт, доступный только человеку. Путь к заготовке ответа
+проверяется по имени, содержимое заготовки — не здесь.
 
 Коды возврата: 0 — все запросы по шаблону; 1 — есть отступления; 2 — сломана
 декларация (нет папок проекта при живом internal/).
@@ -55,12 +61,45 @@ SECTIONS = (
 MAX_QUESTIONS = 6
 Q_HEAD = re.compile(r"^### (Q1\.(\d+))\.", re.MULTILINE)
 ANY_REQ = re.compile(r"\breq_\d[0-9a-z_]*")
+# Один предикат «запрос закрыт» на все проверки и на архиватор: звёздочки,
+# двоеточие и регистр не должны решать, уедет запрос в архив или нет.
+STATUS_RE = re.compile(r"Статус обработки:?[ \t]*\**\s*([^\n]*)")
+ANSWER_PATTERNS = ("{id}*.answer.md", "{id}*.resp.md")
+CLOSED_WORDS = ("принят", "отклон")
+
+
+def read(path):
+    with open(path, "r", encoding="utf-8", errors="replace") as handle:
+        return handle.read()
+
+
+def status_of(text):
+    """Значение «Статус обработки» без звёздочек: «принят», «отклонён», «в очереди»."""
+    match = STATUS_RE.search(text)
+    if not match:
+        return ""
+    return re.sub(r"[*`_]", "", match.group(1)).strip().lower()
+
+
+def is_closed(text):
+    state = status_of(text)
+    return any(state.startswith(word) for word in CLOSED_WORDS)
+
+
+def answers_for(resp_dir, request_id):
+    """Все файлы-ответы запроса: <id>*.answer.md и <id>*.resp.md, в т.ч. из inbox."""
+    found = []
+    for pattern in ANSWER_PATTERNS:
+        for name in glob.glob(os.path.join(resp_dir, pattern.format(id=request_id))):
+            found.append(name)
+        for name in glob.glob(os.path.join(resp_dir, "inbox", pattern.format(id=request_id))):
+            found.append(name)
+    return sorted(set(found))
 
 
 def check_request(path, req_dir, resp_dir, problems):
     name = os.path.basename(path)
-    with open(path, "r", encoding="utf-8", errors="replace") as handle:
-        text = handle.read()
+    text = read(path)
     in_root = os.path.dirname(path) == req_dir
 
     for field in FIELDS:
@@ -82,20 +121,13 @@ def check_request(path, req_dir, resp_dir, problems):
             problems.append("%s: идентификатор в шапке «%s» не совпадает с именем файла" % (name, short))
 
     if in_root:
-        answers = glob.glob(os.path.join(resp_dir, own + ".*")) \
-            + glob.glob(os.path.join(resp_dir, "inbox", own + ".*"))
+        answers = answers_for(resp_dir, own)
         if not answers:
             problems.append(
                 "%s: нет пары — заготовка ответа не создана (AGENTS §4: пара до отправки)" % name
             )
         for answer_path in answers:
-            if not answer_path.endswith(".md"):
-                continue
-            with open(answer_path, "r", encoding="utf-8", errors="replace") as handle:
-                answer_text = handle.read()
-            status = re.search(r"Статус обработки:?\**\s*([^\n]*)", answer_text)
-            status_text = status.group(1).lower() if status else ""
-            if status_text.startswith("принят") or status_text.startswith("отклон"):
+            if is_closed(read(answer_path)):
                 problems.append(
                     "%s: закрытый запрос остался в корне — запусти python scripts/archive_requests.py" % name
                 )
@@ -114,6 +146,15 @@ def check_request(path, req_dir, resp_dir, problems):
             problems.append(
                 "%s: нумерация вопросов должна идти подряд от Q1.1, сейчас %s"
                 % (name, ", ".join("Q1.%d" % n for n in numbers))
+            )
+    # Объявленное в шапке число вопросов сверяется с телом запроса: «0» при живых
+    # блоках — это не заполненная шапка, а не ответ «вопросов нет».
+    if in_root:
+        declared = re.search(r"\*\*Вопросов:\*\*\s*(\d+)", text)
+        if declared is not None and int(declared.group(1)) != len(numbers):
+            problems.append(
+                "%s: в шапке «**Вопросов:** %s», а блоков Q1.N в разделе 2 — %d: число не совпадает"
+                % (name, declared.group(1), len(numbers))
             )
 
     foreign = set(ANY_REQ.findall(text)) - {own, "request"}

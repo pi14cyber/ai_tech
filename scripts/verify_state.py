@@ -15,10 +15,17 @@
 5. Запрос с пометкой `**Статус:** неактуален` снимается с работы и уходит в архив
    без ответа: тема закрыта или поглощена другим запросом.
 
-Коды возврата: 0 — состояние сходится; 1 — расхождения; 2 — нечего проверять.
+Предикат «запрос закрыт» — тот же, что в `verify_requests.py` и
+`archive_requests.py`: «Статус обработки» принят или отклонён, звёздочки вокруг
+поля не важны.
+
+Коды возврата: 0 — состояние сходится; 1 — расхождения; 2 — сломана декларация
+(нет папки запросов) или проверяльщик упал.
 
 Проверка самого проверяльщика: `--self-test` прогоняет обе процедуры архива
-(отвеченная пара и снятый запрос) на временной папке.
+(отвеченная пара и снятый запрос) на временной папке. Ответ в образце содержит
+статус обработки — иначе перенос не сработает, а падение самопроверки даёт код 2
+с вердиктом «ИТОГ:», а не трейсбек.
 """
 
 import os
@@ -40,11 +47,26 @@ RESP_DIRS = (RESP_DIR, ARCH_ANSWERS)
 STATE_LINE = re.compile(r"^\*\*Состояние:\*\*.*$", re.MULTILINE)
 OBSOLETE_RE = re.compile(r"^\*\*Статус:\*\*\s*неактуален", re.MULTILINE)
 Q_HEAD = re.compile(r"^### (Q1\.\d+)\.", re.MULTILINE)
+# Тот же предикат «запрос закрыт», что в verify_requests.py и archive_requests.py.
+STATUS_RE = re.compile(r"Статус обработки:?[ \t]*\**\s*([^\n]*)")
+CLOSED_WORDS = ("принят", "отклон")
 
 
 def read(path):
     with open(path, "r", encoding="utf-8", errors="replace") as f:
         return f.read()
+
+
+def status_of(text):
+    match = STATUS_RE.search(text)
+    if not match:
+        return ""
+    return re.sub(r"[*`_]", "", match.group(1)).strip().lower()
+
+
+def is_closed(text):
+    state = status_of(text)
+    return any(state.startswith(word) for word in CLOSED_WORDS)
 
 
 def answer_for(base):
@@ -127,9 +149,7 @@ def main(argv=None):
             note = "неактуален, перенос в архив: `python scripts/verify_state.py --move`"
             to_move.append((req_path, None, name))
         elif complete:
-            status_match = re.search(r"Статус обработки:?\**\s*([^\n]*)", read(resp_path))
-            status_text = status_match.group(1).strip().lower() if status_match else ""
-            if status_text.startswith("принят") or status_text.startswith("отклон"):
+            if is_closed(read(resp_path)):
                 note = "закрыт, перенос в архив: `python scripts/archive_requests.py`"
                 to_move.append((req_path, resp_path, name))
             else:
@@ -159,18 +179,26 @@ def main(argv=None):
     if move_mode and to_move:
         os.makedirs(ARCH_ANSWERS, exist_ok=True)
         for req_path, resp_path, name in to_move:
-            target_req = os.path.join(ARCH_DIR, name)
-            shutil.move(req_path, target_req)
+            if not os.path.exists(req_path):
+                problems.append("%s: файл запроса исчез до переноса — перенос пропущен" % name)
+                continue
+            moved_answer = None
             if resp_path:
-                shutil.move(resp_path, os.path.join(ARCH_ANSWERS, os.path.basename(resp_path)))
+                if not os.path.exists(resp_path):
+                    problems.append("%s: файл ответа исчез до переноса — запрос оставлен в работе" % name)
+                    continue
+                moved_answer = os.path.join(ARCH_ANSWERS, os.path.basename(resp_path))
+                shutil.move(resp_path, moved_answer)
+            shutil.move(req_path, os.path.join(ARCH_DIR, name))
+            target_req = os.path.join(ARCH_DIR, name)
             text = read(target_req)
             total = len(list(dict.fromkeys(Q_HEAD.findall(text))))
             if OBSOLETE_RE.search(text):
                 note = "в архиве, снят как неактуальный"
                 answered = 0
             else:
-                note = "в архиве, ответ рядом: `%s`" % (os.path.basename(resp_path) if resp_path else "нет")
-                answer_text = read(os.path.join(ARCH_ANSWERS, os.path.basename(resp_path))) if resp_path else ""
+                note = "в архиве, ответ рядом: `%s`" % (os.path.basename(moved_answer) if moved_answer else "нет")
+                answer_text = read(moved_answer) if moved_answer else ""
                 req_qids = list(dict.fromkeys(Q_HEAD.findall(text)))
                 answer_qids = set(Q_HEAD.findall(answer_text))
                 answered = len([q for q in req_qids if q in answer_qids])
@@ -228,7 +256,8 @@ def self_test():
               "### Q1.1. Первый\n\n### Q1.2. Второй\n")
         write(os.path.join(RESP_DIR, "req_test_answered.answer.md"),
               "### Q1.1. Первый\n\n- **Факты за:** x\n\n"
-              "### Q1.2. Второй\n\n- **Факты за:** y\n")
+              "### Q1.2. Второй\n\n- **Факты за:** y\n\n"
+              "**Статус обработки:** принят\n")
 
         obsolete_req = os.path.join(REQ_DIR, "req_test_obsolete.md")
         write(obsolete_req,
@@ -273,5 +302,16 @@ def self_test():
 
 if __name__ == "__main__":
     if "--self-test" in sys.argv:
-        sys.exit(self_test())
-    sys.exit(main())
+        try:
+            code = self_test()
+        except Exception as error:  # падение самопроверки — код 2 с вердиктом, а не трейсбек
+            print("ИТОГ: 2 — самопроверка не смогла выполниться: %s" % error)
+            code = 2
+        sys.exit(code)
+    try:
+        sys.exit(main())
+    except SystemExit:
+        raise
+    except Exception as error:
+        print("ИТОГ: 2 — проверка не смогла выполниться: %s" % error)
+        sys.exit(2)

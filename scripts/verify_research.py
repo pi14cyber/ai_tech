@@ -16,8 +16,17 @@
 - Скрипт сверяет три вещи: все ли идентификаторы из запроса есть в ответе; нет ли
   лишних идентификаторов; в каждом блоке ответа есть ссылка или пометка белого пятна.
 
+Два слоя: проект — `internal/draft/requests|responses`; человек —
+`workspace/requests|responses`. Слой человека проверяется теми же правилами, в том
+числе когда папки `internal/` нет (основной режим набора). Если папок запросов нет
+ни в одном слое — «проверять нечего» с кодом 0.
+
 Коды возврата: 0 — всё сходится или ответов ещё нет; 1 — расхождения в ответе;
-2 — сломан запрос: идентификаторов не найдено.
+2 — сломан запрос: идентификаторов не найдено или нет папки запросов проекта.
+
+Чего не проверяет: смысл вопросов и качество фактов (только наличие блока, ссылки
+или честного белого пятна); что человек действительно отправил запрос — это
+внешний факт, доступный только человеку.
 """
 
 import os
@@ -30,11 +39,11 @@ except Exception:
     pass
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REQ_DIR = os.path.join(ROOT, "internal", "draft", "requests")
-ARCH_DIR = os.path.join(REQ_DIR, "archive")
-RESP_DIR = os.path.join(ROOT, "internal", "draft", "responses")
-RESP_DIRS = (RESP_DIR, os.path.join(ARCH_DIR, "answers"))
-INBOX_DIR = os.path.join(RESP_DIR, "inbox")
+INTERNAL = os.path.join(ROOT, "internal")
+LAYERS = (
+    ("проект", os.path.join(INTERNAL, "draft", "requests"), os.path.join(INTERNAL, "draft", "responses")),
+    ("человек", os.path.join(ROOT, "workspace", "requests"), os.path.join(ROOT, "workspace", "responses")),
+)
 
 ID_RE = re.compile(r"^(?:#{1,6}\s*)?(?:\*\*)?(?:Вопрос\s*)?(?:`)?(Q\d+\.\d+)\b", re.MULTILINE)
 ANY_ID_RE = re.compile(r"\bQ\d+\.\d+\b")
@@ -50,9 +59,9 @@ def read(path):
         return f.read()
 
 
-def find_responses(name):
+def find_responses(name, resp_dirs):
     found = []
-    for directory in RESP_DIRS:
+    for directory in resp_dirs:
         if not os.path.isdir(directory):
             continue
         for candidate in sorted(os.listdir(directory)):
@@ -79,101 +88,140 @@ def blocks(text, ids):
     return out
 
 
-def main():
-    if not os.path.isdir(os.path.join(ROOT, "internal")):
-        print("РЕЖИМ ПОЛЬЗОВАТЕЛЯ: папки internal/ нет — запросы проекта не проверяются.")
-        print("Запросы и ответы человека живут в workspace/requests и workspace/responses.")
-        print("\nИТОГ: 0 — проверять нечего")
-        return 0
+def check_layer(label, req_dir, resp_dir, strict, problems, waiting, obsolete, broken):
+    """Проверяет один слой. Возвращает (вопросов, отвечено) или None, если слоя нет."""
+    prefix = "" if label == "проект" else "[человек] "
+    if not os.path.isdir(req_dir):
+        return None
+    arch_dir = os.path.join(req_dir, "archive")
+    resp_dirs = (resp_dir, os.path.join(arch_dir, "answers"))
+    inbox_dir = os.path.join(resp_dir, "inbox")
 
-    broken = []
-    problems = []
-    waiting = []
-    obsolete = []
+    pairs = [(req_dir, f) for f in sorted(os.listdir(req_dir))
+             if f.endswith(".md") and f != "README.md"]
+    if os.path.isdir(arch_dir):
+        pairs += [(arch_dir, f) for f in sorted(os.listdir(arch_dir))
+                  if f.endswith(".md") and f != "README.md"]
+    if not pairs:
+        if strict:
+            broken.append("%sнет ни одного файла запросов: %s" % (prefix, req_dir))
+            return None
+        return None
+
     total_q = 0
     answered = 0
+    for folder, name in pairs:
+        in_archive = folder == arch_dir
+        req_path = os.path.join(folder, name)
+        req_text = read(req_path)
+        if OBSOLETE_RE.search(req_text):
+            obsolete.append(prefix + name)
+            continue
+        req_ids = [m.group(1) for m in ID_RE.finditer(req_text)]
+        if not req_ids:
+            broken.append("%sв запросе %s не найдено ни одного идентификатора Qn.n" % (prefix, name))
+            continue
+        req_ids = list(dict.fromkeys(req_ids))
+        total_q += len(req_ids)
 
-    if not os.path.isdir(REQ_DIR):
-        broken.append("нет папки запросов: %s" % REQ_DIR)
-    else:
-        pairs = [(REQ_DIR, f) for f in sorted(os.listdir(REQ_DIR)) if f.endswith(".md") and f != "README.md"]
-        if os.path.isdir(ARCH_DIR):
-            pairs += [(ARCH_DIR, f) for f in sorted(os.listdir(ARCH_DIR)) if f.endswith(".md") and f != "README.md"]
-        if not pairs:
-            broken.append("в папке запросов нет ни одного файла")
-        for folder, name in pairs:
-            req_path = os.path.join(folder, name)
-            req_text = read(req_path)
-            if OBSOLETE_RE.search(req_text):
-                obsolete.append(name)
-                continue
-            req_ids = [m.group(1) for m in ID_RE.finditer(req_text)]
-            if not req_ids:
-                broken.append("в запросе %s не найдено ни одного идентификатора Qn.n" % name)
-                continue
-            req_ids = list(dict.fromkeys(req_ids))
-            total_q += len(req_ids)
-
-            if len(req_ids) > MAX_QUESTIONS:
-                problems.append(
-                    "%s: %d вопросов, предел пакета %d — нарежь на пакеты, иначе внешняя модель срежет ответ"
-                    % (name, len(req_ids), MAX_QUESTIONS)
-                )
-
-            base = name[:-3]
-            resp_paths = find_responses(base)
-            if not resp_paths:
-                waiting.append("%s: вопросов %d, ответа нет" % (name, len(req_ids)))
-                continue
-            if "быстрая" in req_text and len(req_ids) > 5 and os.path.dirname(req_path) != ARCH_DIR:
-                problems.append("%s: категория «быстрая», а вопросов %d — короткий предел пять"
-                                % (name, len(req_ids)))
-            if "дип" in req_text and len(resp_paths) < 2:
-                if os.path.dirname(req_path) == ARCH_DIR:
-                    waiting.append("%s: «дип» с одним файлом ответа — старый формат, второй канал не подтверждён" % name)
-                else:
-                    problems.append("%s: категория «дип», а файлов ответов %d — нужно два независимых канала"
-                                    % (name, len(resp_paths)))
-            resp_path = resp_paths[0]
-
-            resp_text = read(resp_path)
-            resp_ids = list(dict.fromkeys([m.group(1) for m in ID_RE.finditer(resp_text)]))
-            bl = blocks(resp_text, resp_ids)
-
-            missing = [q for q in req_ids if q not in resp_ids]
-            extra = [q for q in resp_ids if q not in req_ids]
-            answered += len([q for q in req_ids if q in resp_ids])
-
-            if missing:
-                problems.append(
-                    "%s: не отвечено на %d вопросов: %s"
-                    % (os.path.basename(resp_path), len(missing), ", ".join(missing))
-                )
-            if extra:
-                problems.append(
-                    "%s: идентификаторы без вопроса в запросе: %s"
-                    % (os.path.basename(resp_path), ", ".join(extra))
-                )
-            has_classic = all(section in resp_text for section in SECTIONS)
-            has_alt = all(section in resp_text for section in ALT_SECTIONS)
-            if not (has_classic or has_alt):
-                problems.append(
-                    "%s: нет ни классических разделов (Факты за / против / Белые пятна), "
-                    "ни новых (Источники / Алгоритм словами / Белые пятна)" % os.path.basename(resp_path)
-                )
-            for qid in [q for q in req_ids if q in resp_ids]:
-                body = bl.get(qid, "")
-                if "http" not in body and WHITE_MARK not in body.lower():
-                    problems.append(
-                        "%s, блок %s: нет ни ссылки, ни пометки белого пятна"
-                        % (os.path.basename(resp_path), qid)
-                    )
-
-            print(
-                "%s → %s: вопросов %d, отвечено %d, ссылок %d"
-                % (name, os.path.basename(resp_path), len(req_ids),
-                   len([q for q in req_ids if q in resp_ids]), resp_text.count("http"))
+        if len(req_ids) > MAX_QUESTIONS:
+            problems.append(
+                "%s%s: %d вопросов, предел пакета %d — нарежь на пакеты, иначе внешняя модель срежет ответ"
+                % (prefix, name, len(req_ids), MAX_QUESTIONS)
             )
+
+        base = name[:-3]
+        resp_paths = find_responses(base, resp_dirs)
+        if not resp_paths:
+            waiting.append("%s%s: вопросов %d, ответа нет" % (prefix, name, len(req_ids)))
+            continue
+        if "быстрая" in req_text and len(req_ids) > 5 and not in_archive:
+            problems.append("%s%s: категория «быстрая», а вопросов %d — короткий предел пять"
+                            % (prefix, name, len(req_ids)))
+        if "дип" in req_text and len(resp_paths) < 2:
+            if in_archive:
+                waiting.append("%s%s: «дип» с одним файлом ответа — старый формат, второй канал не подтверждён"
+                               % (prefix, name))
+            else:
+                problems.append("%s%s: категория «дип», а файлов ответов %d — нужно два независимых канала"
+                                % (prefix, name, len(resp_paths)))
+        resp_path = resp_paths[0]
+
+        resp_text = read(resp_path)
+        resp_ids = list(dict.fromkeys([m.group(1) for m in ID_RE.finditer(resp_text)]))
+        bl = blocks(resp_text, resp_ids)
+
+        missing = [q for q in req_ids if q not in resp_ids]
+        extra = [q for q in resp_ids if q not in req_ids]
+        answered += len([q for q in req_ids if q in resp_ids])
+
+        if missing:
+            problems.append(
+                "%s%s: не отвечено на %d вопросов: %s"
+                % (prefix, os.path.basename(resp_path), len(missing), ", ".join(missing))
+            )
+        if extra:
+            problems.append(
+                "%s%s: идентификаторы без вопроса в запросе: %s"
+                % (prefix, os.path.basename(resp_path), ", ".join(extra))
+            )
+        has_classic = all(section in resp_text for section in SECTIONS)
+        has_alt = all(section in resp_text for section in ALT_SECTIONS)
+        if not (has_classic or has_alt):
+            problems.append(
+                "%s%s: нет ни классических разделов (Факты за / против / Белые пятна), "
+                "ни новых (Источники / Алгоритм словами / Белые пятна)"
+                % (prefix, os.path.basename(resp_path))
+            )
+        for qid in [q for q in req_ids if q in resp_ids]:
+            body = bl.get(qid, "")
+            if "http" not in body and WHITE_MARK not in body.lower():
+                problems.append(
+                    "%s%s, блок %s: нет ни ссылки, ни пометки белого пятна"
+                    % (prefix, os.path.basename(resp_path), qid)
+                )
+
+        print(
+            "%s%s → %s: вопросов %d, отвечено %d, ссылок %d"
+            % (prefix, name, os.path.basename(resp_path), len(req_ids),
+               len([q for q in req_ids if q in resp_ids]), resp_text.count("http"))
+        )
+
+    incoming = []
+    if os.path.isdir(inbox_dir):
+        incoming = sorted(f for f in os.listdir(inbox_dir) if not f.startswith("README"))
+    if incoming:
+        print("\nВХОДЯЩИЕ (%s, responses/inbox): %d файл(ов) — заготовки и ответы"
+              % (label, len(incoming)))
+        for entry in incoming:
+            print("  входящий: %s" % entry)
+    elif label == "проект":
+        print("\nвходящих ответов нет")
+    return total_q, answered
+
+
+def main():
+    broken, problems, waiting, obsolete = [], [], [], []
+    checked = []
+    total_q = 0
+    answered = 0
+    internal = os.path.isdir(INTERNAL)
+    if not internal:
+        print("РЕЖИМ ПОЛЬЗОВАТЕЛЯ: папки internal/ нет — запросы проекта не проверяются.")
+        print("Проверяется слой человека: workspace/requests и workspace/responses.")
+    for label, req_dir, resp_dir in LAYERS:
+        if label == "проект" and not internal:
+            continue
+        if label == "проект" and not os.path.isdir(req_dir):
+            broken.append("нет папки запросов: %s" % req_dir)
+            continue
+        result = check_layer(label, req_dir, resp_dir, label == "проект",
+                             problems, waiting, obsolete, broken)
+        if result is None:
+            continue
+        checked.append(label)
+        total_q += result[0]
+        answered += result[1]
 
     print("")
     if obsolete:
@@ -188,15 +236,12 @@ def main():
     if total_q:
         print("\nвсего вопросов в запросах: %d, отвечено: %d" % (total_q, answered))
 
-    incoming = []
-    if os.path.isdir(INBOX_DIR):
-        incoming = sorted(f for f in os.listdir(INBOX_DIR) if not f.startswith("README"))
-    if incoming:
-        print("\nВХОДЯЩИЕ (responses/inbox): %d файл(ов) — заготовки и ответы" % len(incoming))
-        for name in incoming:
-            print("  входящий: %s" % name)
-    else:
-        print("\nвходящих ответов нет")
+    if not checked and not broken and not problems and not waiting:
+        print("\nИТОГ: 0 — проверять нечего: ни у проекта, ни у человека нет папок запросов")
+        return 0
+    if not checked and not broken and not problems:
+        print("\nИТОГ: 0 — запросы отправлены, ответов пока нет")
+        return 0
 
     if broken:
         print("\nИТОГ: 2 — сломан запрос, проверять нечего")
@@ -212,4 +257,8 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as error:
+        print("ИТОГ: 2 — проверка не смогла выполниться: %s" % error)
+        sys.exit(2)
