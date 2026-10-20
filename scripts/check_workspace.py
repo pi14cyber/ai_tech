@@ -456,8 +456,12 @@ def main():
                 open_findings.append(number)
             if cells[5] not in FINDING:
                 problems.append("audit-log.md:%d — статус «%s» не из словаря" % (number, cells[5]))
+            if cells[5] == "внедрено" and not cells[6]:
+                problems.append("audit-log.md:%d — статус «внедрено» без доказательства внедрения" % number)
+            if cells[5] == "отклонено" and (len(cells) < 9 or not cells[7]):
+                problems.append("audit-log.md:%d — статус «отклонено» без того, кто решил" % number)
             if cells[5] == "проверено":
-                who = cells[7].strip() if len(cells) > 7 else ""
+                who = cells[8].strip() if len(cells) > 8 else ""
                 if not who:
                     problems.append("audit-log.md:%d — статус «проверено» без того, кто проверил" % number)
 
