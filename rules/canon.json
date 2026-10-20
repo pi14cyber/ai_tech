@@ -52,5 +52,19 @@
     "gate_single": "Правило `BUILD` остаётся одно — пункт 3",
     "packets": "Каждый пакет — отдельный файл запроса со своей нумерацией от `Q1.1`",
     "stop_canon": "Канон — шесть условий в `AGENTS.md`, раздел 11"
+  },
+  "required": {
+    "templates/request-short.md": ["Пакет", "Внешний сервис", "Исполнитель запроса"],
+    "templates/request-full.md": ["Пакет", "Внешний сервис", "Исполнитель запроса"],
+    "templates/prevalidation-report.md": ["Исход ворот", "Пакет"],
+    "templates/state.md": ["Исход ворот", "Решение судьи", "Версия результата", "Задано вопросов", "Режим"],
+    "templates/artifact.md": ["Версия", "Исход проверки", "Текст сообщения"],
+    "templates/judge-report.md": ["Решение судьи", "Версия результата", "Кто проверял"],
+    "templates/audit-log.md": ["Кто проверил"],
+    "skills/05-validation-gate/SKILL.md": ["Режим метрик", "Решение человека"],
+    "skills/m2-work-router/SKILL.md": ["Решение судьи", "не запускалось"],
+    "skills/03-prevalidation/SKILL.md": ["Пакет", "не запускалось"],
+    "skills/m3-judge/SKILL.md": ["не показывать"],
+    "skills/09-audit/SKILL.md": ["A, B, C или D"]
   }
 }

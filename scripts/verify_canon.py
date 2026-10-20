@@ -33,6 +33,10 @@ except Exception:
     pass
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if "--root" in sys.argv:
+    index = sys.argv.index("--root")
+    if index + 1 < len(sys.argv):
+        ROOT = os.path.abspath(sys.argv[index + 1])
 CANON = os.path.join(ROOT, "rules", "canon.json")
 
 
@@ -134,6 +138,18 @@ def main():
         for name in where:
             if str(value) not in public.get(name, ""):
                 problems.append("%s — нет предела %s" % (name, value))
+
+    for path, fields in canon.get("required", {}).items():
+        content = public.get(path)
+        if content is None:
+            content = read(path)
+        for needed in fields:
+            if needed not in content:
+                problems.append("%s — нет обязательного поля или раздела «%s»" % (path, needed))
+
+    for script in re.findall(r'^\s*\("[^"]+",\s*"([^"]+\.py)"\)', verify, re.MULTILINE):
+        if not os.path.exists(os.path.join(ROOT, "scripts", script)):
+            problems.append("verify.py обещает проверку scripts/%s, а её нет" % script)
 
     print("канон: версия %s; навыков %d, шаблонов %d, проверок %d, стоп-условий %d"
           % (canon.get("version"), len(skills), len(templates), checks, counts["stop_conditions"]))
