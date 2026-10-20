@@ -54,8 +54,13 @@ def field(content, key):
     match = re.search(r"%s[^\n:]*:\s*(.+)" % re.escape(key), content)
     if not match:
         return None
-    value = match.group(1).strip()
-    return value if value else None
+    value = match.group(1).strip().strip("*` ")
+    if not value:
+        return None
+    lowered = value.lower()
+    if value.startswith("(") or "____" in value or "вписать" in lowered or "заполняет" in lowered:
+        return None
+    return value
 
 
 def main():
@@ -71,12 +76,26 @@ def main():
     if os.path.exists(state_path):
         checked += 1
         content = read(state_path)
-        for key in ("Текущий шаг", "Режим", "Задано вопросов", "Контур"):
-            if field(content, key) is None and key != "Контур":
-                problems.append("state.md — не заполнено поле «%s»" % key)
+        for key in ("Текущий шаг", "Режим", "Задано вопросов"):
+            if field(content, key) is None:
+                problems.append("state.md — не заполнено поле «%s» (подсказка не считается ответом)" % key)
         gate = field(content, "Исход ворот")
         if gate is not None and not any(o in gate for o in OUTCOMES):
             problems.append("state.md — исход ворот «%s» не из словаря" % gate)
+        ready = field(content, "Готов к показу")
+        if ready and "да" in ready.lower():
+            decision = field(content, "Решение судьи")
+            if decision is None or not any(j in decision.lower() for j in JUDGE):
+                problems.append("state.md — «готов к показу», но решения судьи в состоянии нет: показ запрещён")
+            elif "не показывать" in decision.lower():
+                problems.append("state.md — «готов к показу», но судья сказал «не показывать»")
+
+    profile_path = os.path.join(WS, "profile.md")
+    if os.path.exists(profile_path):
+        checked += 1
+        content = read(profile_path)
+        if field(content, "Уровень готовности делиться") is None:
+            problems.append("profile.md — не заполнен уровень готовности делиться данными (вопрос шага 0)")
 
     responses = glob.glob(os.path.join(WS, "responses", "*.md"))
     for report in sorted(glob.glob(os.path.join(WS, "research", "prevalidation-*.md"))):
@@ -129,6 +148,10 @@ def main():
                 problems.append("audit-log.md:%d — класс «%s» не из A/B/C/D" % (number, cells[3]))
             if cells[5] not in FINDING:
                 problems.append("audit-log.md:%d — статус «%s» не из словаря" % (number, cells[5]))
+            if cells[5] == "проверено":
+                who = cells[7].strip() if len(cells) > 7 else ""
+                if not who:
+                    problems.append("audit-log.md:%d — статус «проверено» без того, кто проверил" % number)
 
     artifact_path = os.path.join(WS, "artifact.md")
     if os.path.exists(artifact_path):

@@ -40,9 +40,31 @@
     "assumption": ["UNTESTED", "WEAKENED", "SUPPORTED", "KILLED"],
     "contour": ["внешний", "внутренний"]
   },
+  "limits_where": {
+    "questions_first_session": ["AGENTS.md"],
+    "questions_later": ["AGENTS.md"],
+    "questions_per_packet": ["AGENTS.md", "skills/03-prevalidation/SKILL.md"],
+    "short_request_min": ["AGENTS.md"],
+    "short_request_max": ["AGENTS.md"],
+    "full_request_max": ["AGENTS.md"],
+    "answer_words_full": ["AGENTS.md"],
+    "answer_words_short": ["skills/03-prevalidation/SKILL.md"],
+    "timebox_hours": ["AGENTS.md", "skills/04-mvp-artifact/SKILL.md", "templates/artifact.md"],
+    "reworks": ["AGENTS.md", "skills/04-mvp-artifact/SKILL.md"],
+    "message_words": ["skills/04-mvp-artifact/SKILL.md"],
+    "touches_per_week": ["skills/06-access/SKILL.md", "templates/access-log.md"],
+    "silence_hours": ["skills/06-access/SKILL.md", "templates/access-log.md"],
+    "contacts_per_sprint": ["skills/06-access/SKILL.md"],
+    "measure_days": ["skills/00b-telemetry-setup/SKILL.md"],
+    "cycle_weeks": ["skills/02-hadi-hypothesis/SKILL.md", "templates/hadi-tracker.md"],
+    "question_length": ["AGENTS.md"],
+    "list_people_min": ["skills/06-access/SKILL.md"],
+    "list_people_max": ["skills/06-access/SKILL.md"]
+  },
   "banned": {
     "outcome_synonyms": ["провалилось", "неудачно"],
     "old_stop_counts": ["любое из четырёх", "любое из пяти", "из четырёх ниже"],
+    "false_stop_words": ["условий выхода четыре", "стоп-условий четыре", "четыре стоп-условия", "условий выхода пять", "пять стоп-условий"],
     "prefilled_human": ["Кто решил: человек", "Показывать / не показывать", "вписывает человек: файлы"],
     "false_sixteen": ["встреча с датой, интро", "назначенная встреча, интро", "время, репутация, деньги, встреча"]
   },

@@ -47,6 +47,23 @@ def read(rel):
     return open(path, encoding="utf-8").read()
 
 
+WORDS = {1: "одно", 2: "два", 3: "три", 4: "четыре", 5: "пять", 6: "шесть",
+         7: "семь", 8: "восемь", 9: "девять", 10: "десять", 11: "одиннадцать",
+         12: "двенадцать", 13: "тринадцать", 14: "четырнадцать"}
+
+
+def numbers_ok(content, value):
+    """Число ищется как значение: цифрой или словом, но не подстрокой («4» не «14»)."""
+    text = str(value)
+    if text.isdigit():
+        number = int(text)
+        if re.search(r"(?<!\d)" + text + r"(?!\d)", content):
+            return True
+        word = WORDS.get(number)
+        return bool(word and word in content)
+    return text in content
+
+
 def main():
     if not os.path.exists(CANON):
         print("ИТОГ: 2 — нет канона rules/canon.json")
@@ -136,8 +153,17 @@ def main():
                          (canon["limits"]["message_words"], ["skills/04-mvp-artifact/SKILL.md"]),
                          (canon["limits"]["silence_hours"], ["skills/06-access/SKILL.md", "templates/access-log.md"])):
         for name in where:
-            if str(value) not in public.get(name, ""):
+            if not numbers_ok(public.get(name, ""), value):
                 problems.append("%s — нет предела %s" % (name, value))
+
+    for key, where in canon.get("limits_where", {}).items():
+        value = canon["limits"].get(key)
+        if value is None:
+            problems.append("Канон — предел «%s» объявлен в limits_where, но не описан в limits" % key)
+            continue
+        for name in where:
+            if not numbers_ok(public.get(name, ""), value):
+                problems.append("%s — не назван предел «%s» = %s" % (name, key, value))
 
     for path, fields in canon.get("required", {}).items():
         content = public.get(path)
