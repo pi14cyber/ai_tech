@@ -105,14 +105,20 @@ def main():
     if expected and found != expected:
         problems.append("список проверок в verify.py не совпадает с каноном: %d против %d"
                         % (len(found), len(expected)))
+    bodies = {}
     for name, script in found:
         path = os.path.join(ROOT, "scripts", script)
         if not os.path.exists(path):
             problems.append("verify.py обещает проверку scripts/%s, а её нет" % script)
             continue
         body = open(path, encoding="utf-8", errors="replace").read()
-        if len(body) < 400 or "def main" not in body:
-            problems.append("scripts/%s — заглушка вместо проверки" % script)
+        if len(body) < 1500 or "ИТОГ:" not in body or "def main" not in body:
+            problems.append("scripts/%s — похоже на заглушку вместо проверки (короткое тело без вердикта «ИТОГ:»)" % script)
+        key = hash(body)
+        if key in bodies and bodies[key] != script:
+            problems.append("scripts/%s и scripts/%s — одинаковое тело: одна проверка выдаёт себя за другую"
+                            % (bodies[key], script))
+        bodies[key] = script
 
     agents = read("AGENTS.md")
     words = {1: "одно", 2: "два", 3: "трёх", 4: "четырёх", 5: "пяти", 6: "шести",
