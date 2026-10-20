@@ -229,7 +229,7 @@ def main():
                 fact_lines = [line for line in content.splitlines()
                               if re.search(r"Q\d+\.\d+", line) and "http" in line
                               and re.search(r"\d{2}\.\d{2}\.\d{4}", line)]
-                packet_match = re.search(r"Пакет:\s*(\d+)\s*из", content)
+                packet_match = re.search(r"Пакет\**\s*:\**\s*(\d+)\s*из", content)
                 packet_number = int(packet_match.group(1)) if packet_match else None
                 if packet_number is not None:
                     wrong = [line for line in fact_lines
@@ -278,6 +278,7 @@ def main():
         checked += 1
         name = os.path.basename(report)
         content = read(report)
+        judge_checker = field(content, "Кто проверял")
         decision_raw = field(content, "Решение судьи")
         normalized = (decision_raw or "").lower().strip(" .")
         if re.search(r"показывать\s+(нельзя|не|нет)", normalized):
@@ -292,7 +293,6 @@ def main():
             problems.append("%s — нет строгого решения судьи «показывать» или «не показывать»" % name)
         version = field(content, "Версия результата")
         judge_version = version
-        judge_checker = field(content, "Кто проверял")
         if version is not None and not version.strip().isdigit():
             problems.append("%s — версия «%s» не число: сравнение версий невозможно" % (name, version))
         if version is None:
