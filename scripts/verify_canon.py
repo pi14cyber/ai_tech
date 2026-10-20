@@ -206,6 +206,10 @@ def main():
             elif not numbers_ok(content, value):
                 problems.append("%s — не назван предел «%s» = %s" % (name, key, value))
 
+    for key in canon.get("limits_required", []):
+        if key not in canon.get("limits", {}) or key not in canon.get("limits_where", {}):
+            problems.append("Канон — обязательный предел «%s» удалён из limits или limits_where: правило нельзя проверить" % key)
+
     for key in canon.get("limits", {}):
         if key not in canon.get("limits_where", {}):
             problems.append("Канон — предел «%s» никем не проверяется: нет в limits_where" % key)
@@ -234,4 +238,10 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except SystemExit:
+        raise
+    except Exception as error:
+        print("ИТОГ: 2 — канон сломан или проверка упала: %s" % error)
+        sys.exit(2)

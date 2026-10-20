@@ -45,6 +45,7 @@
     "unknowns_without_source": 3,
     "unresolved_hours": 72
   },
+  "limits_required": ["questions_first_session", "questions_later", "questions_per_packet", "short_request_min", "short_request_max", "full_request_max", "answer_words_short", "answer_words_full", "timebox_hours", "reworks", "message_words", "touches_per_week", "silence_hours", "contacts_per_sprint", "measure_days", "cycle_weeks", "question_length", "list_people_min", "list_people_max"],
   "limits": {
     "questions_first_session": 5,
     "questions_later": 3,

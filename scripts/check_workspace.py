@@ -25,6 +25,7 @@
 """
 
 import glob
+import hashlib
 import json
 import os
 import re
@@ -296,8 +297,14 @@ def main():
                 fact_lines = [line for line in content.splitlines()
                               if re.search(r"Q\d+\.\d+", line) and "http" in line
                               and re.search(r"\d{2}\.\d{2}\.\d{4}", line)]
-                packet_match = re.search(r"Пакет\**\s*:\**\s*(\d+)\s*из", content)
-                packet_number = int(packet_match.group(1)) if packet_match else None
+                packet_match = re.search(r"Пакет\**\s*:\**\s*(\d+)\s*из\s*(\d+)", content)
+                if packet_match:
+                    packet_number, packet_total = int(packet_match.group(1)), int(packet_match.group(2))
+                    if packet_number < 1 or packet_total < 1 or packet_number > packet_total:
+                        problems.append("%s — «Пакет: %d из %d»: номер и всего должны быть ≥1 и N ≤ M"
+                                        % (name, packet_number, packet_total))
+                else:
+                    packet_number = None
                 if packet_number is not None:
                     wrong = [line for line in fact_lines
                              if re.search(r"Q(\d+)\.[0-9]+", line)
@@ -317,6 +324,24 @@ def main():
                             problems.append("%s — в строке Q нет адреса" % name)
                         if not re.search(r"\d{2}\.\d{2}\.\d{4}", fact):
                             problems.append("%s — в строке Q нет даты" % name)
+                        text_only = re.sub(r"Q\d+\.\d+|https?://\S+|\d{2}\.\d{2}\.\d{4}", " ", fact)
+                        if len(re.findall(r"[А-Яа-яЁёA-Za-z]", text_only)) < 3:
+                            problems.append("%s — строка Q без текста вопроса: один номер не считается фактом" % name)
+                if len({re.search(r"Q\d+\.\d+", line).group(0) for line in fact_lines}) < 2:
+                    problems.append("%s — два факта должны быть разными вопросами" % name)
+                hashes = []
+                for response in responses:
+                    hashes.append(hashlib.sha256(read(response).encode("utf-8", "replace")).hexdigest())
+                if len(set(hashes)) < len(hashes):
+                    problems.append("%s — файлы ответов не уникальны: копия ответа не считается вторым каналом" % name)
+                for response in responses:
+                    body = read(response)
+                    if len(body) < 200:
+                        problems.append("%s — ответ %s короче 200 знаков: мусор не считается ответом"
+                                        % (name, os.path.basename(response)))
+                    elif len(set(re.findall(r"Q\d+\.\d+", body))) < 2:
+                        problems.append("%s — ответ %s не содержит двух разных вопросов"
+                                        % (name, os.path.basename(response)))
                 if not responses:
                     problems.append("%s — исход «прошло», но ни одного файла ответа нет: ворота не пройдены" % name)
                 else:
@@ -454,6 +479,8 @@ def main():
                                 % os.path.basename(path))
 
     artifact_path = os.path.join(WS, "artifact.md")
+    if os.path.exists(artifact_path) and not os.path.exists(os.path.join(WS, "state.md")):
+        problems.append("artifact.md — артефакт есть, а состояния нет: версии и решения не с чем сверять")
     if os.path.exists(artifact_path):
         checked += 1
         content = read(artifact_path)
@@ -548,7 +575,9 @@ def self_test():
         open(os.path.join(root, "workspace", "responses", "req_01.answer.md"), "w",
              encoding="utf-8").write(
                  "# Ответ\n\nQ1.1: по данным сервиса ставка составляет 12 тысяч рублей в месяц, "
-                 "источник — прайс-лист на сайте, проверено 01.10.2026, ссылка сохранена в отчёте.\n")
+                 "источник — прайс-лист на сайте, проверено 01.10.2026, ссылка сохранена в отчёте.\n"
+                 "Q1.2: второй факт — срок действия тарифа до 31.12.2026, источник тот же прайс-лист, "
+                 "проверено 01.10.2026, ссылка сохранена в отчёте.\n")
     state = (
         "# Состояние\n\n"
         "- **Текущий шаг:** артефакт\n- **Что дальше (один шаг):** ворота\n"

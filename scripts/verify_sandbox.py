@@ -62,6 +62,9 @@ def main():
         print("ИТОГ: 2 — runs/self-01 является ссылкой на репозиторий: сверка с самой собой невозможна")
         return 2
     if not os.path.isdir(RUN):
+        if os.path.isdir(os.path.join(ROOT, "internal", "draft")):
+            print("ИТОГ: 2 — режим разработки: песочницы runs/self-01 нет, копия не сверена")
+            return 2
         if os.path.isdir(os.path.join(ROOT, "runs")):
             print("ИТОГ: 2 — каталог runs/ есть, а песочницы self-01 нет: копия не сверена")
             return 2
