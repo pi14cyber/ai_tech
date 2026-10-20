@@ -33,10 +33,6 @@ except Exception:
     pass
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if "--root" in sys.argv:
-    index = sys.argv.index("--root")
-    if index + 1 < len(sys.argv):
-        ROOT = os.path.abspath(sys.argv[index + 1])
 CANON = os.path.join(ROOT, "rules", "canon.json")
 
 
@@ -65,6 +61,14 @@ def numbers_ok(content, value):
 
 
 def main():
+    global ROOT, CANON
+    if __name__ == "__main__" and "--root" in sys.argv:
+        index = sys.argv.index("--root")
+        if index + 1 >= len(sys.argv):
+            print("ИТОГ: 2 — параметр --root без значения")
+            return 2
+        ROOT = os.path.abspath(sys.argv[index + 1])
+        CANON = os.path.join(ROOT, "rules", "canon.json")
     if not os.path.exists(CANON):
         print("ИТОГ: 2 — нет канона rules/canon.json")
         return 2

@@ -36,10 +36,6 @@ except Exception:
     pass
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if "--root" in sys.argv:
-    index = sys.argv.index("--root")
-    if index + 1 < len(sys.argv):
-        ROOT = os.path.abspath(sys.argv[index + 1])
 WS = os.path.join(ROOT, "workspace")
 OUTCOMES = ("прошло", "не прошло", "заблокировано", "не запускалось")
 JUDGE = ("показывать", "не показывать")
@@ -96,11 +92,14 @@ def field(content, key):
 
 
 def main():
-    if "--root" in sys.argv:
+    global ROOT, WS
+    if __name__ == "__main__" and "--root" in sys.argv:
         index = sys.argv.index("--root")
         if index + 1 >= len(sys.argv):
             print("ИТОГ: 2 — параметр --root без значения: проверять нечего")
             return 2
+        ROOT = os.path.abspath(sys.argv[index + 1])
+        WS = os.path.join(ROOT, "workspace")
         if not os.path.isdir(WS):
             print("ИТОГ: 2 — корень %s не найден: проверять нечего" % ROOT)
             return 2
@@ -112,6 +111,9 @@ def main():
     problems = []
     checked = 0
     state_version = None
+    state_decision = None
+    judge_checker = None
+    judge_version = None
     report_outcomes = []
 
     state_path = os.path.join(WS, "state.md")
@@ -252,6 +254,8 @@ def main():
         elif not normalized.startswith("показывать"):
             problems.append("%s — нет строгого решения судьи «показывать» или «не показывать»" % name)
         version = field(content, "Версия результата")
+        judge_version = version
+        judge_checker = field(content, "Кто проверял")
         if version is None:
             problems.append("%s — нет привязки к версии результата" % name)
         else:
@@ -324,6 +328,19 @@ def main():
                     ok = True
             if not ok:
                 problems.append("artifact.md — статус «показан человеку», но нет отчёта судьи с решением «показывать»")
+        artifact_version = field(content, "Версия")
+        artifact_author = field(content, "Кто собрал")
+        if artifact_version is not None and judge_version is not None \
+                and artifact_version.strip() != judge_version.strip():
+            problems.append("artifact.md — версия артефакта %s не совпадает с версией в отчёте судьи %s"
+                            % (artifact_version.strip(), judge_version.strip()))
+        if artifact_version is not None and state_version is not None \
+                and artifact_version.strip() != state_version.strip():
+            problems.append("artifact.md — версия артефакта %s не совпадает с версией в состоянии %s"
+                            % (artifact_version.strip(), state_version.strip()))
+        if artifact_author is not None and judge_checker is not None \
+                and artifact_author.strip().lower() == judge_checker.strip().lower():
+            problems.append("artifact.md — судья и автор совпадают: нужен другой проход")
 
     print("файлов проверено: %d" % checked)
     for line in problems:
