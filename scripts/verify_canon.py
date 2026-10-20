@@ -112,8 +112,10 @@ def main():
             problems.append("verify.py обещает проверку scripts/%s, а её нет" % script)
             continue
         body = open(path, encoding="utf-8", errors="replace").read()
-        if len(body) < 1500 or "ИТОГ:" not in body or "def main" not in body:
-            problems.append("scripts/%s — похоже на заглушку вместо проверки (короткое тело без вердикта «ИТОГ:»)" % script)
+        markers = sum(1 for marker in ("sys.exit(", "def main", "open(", "read(", "problems.append")
+                      if marker in body)
+        if len(body) < 1500 or "ИТОГ:" not in body or markers < 3:
+            problems.append("scripts/%s — похоже на заглушку вместо проверки (короткое тело без логики и вердикта «ИТОГ:»)" % script)
         key = hash(body)
         if key in bodies and bodies[key] != script:
             problems.append("scripts/%s и scripts/%s — одинаковое тело: одна проверка выдаёт себя за другую"

@@ -580,10 +580,14 @@ def self_test():
                  "проверено 01.10.2026, ссылка сохранена в отчёте.\n")
     state = (
         "# Состояние\n\n"
-        "- **Текущий шаг:** артефакт\n- **Что дальше (один шаг):** ворота\n"
+        "- **Текущий шаг:** артефакт\n- **Что дальше (один шаг):** судья\n"
         "- **Режим:** обычный\n- **Задано вопросов:** 4\n"
         "- **Номер сессии:** 1\n"
         "- **Контур:** внешний\n- **Исход ворот:** прошло\n"
+        "- **Версия результата:** 1\n- **Готов к показу:** да\n"
+        "- **Решение судьи:** показывать\n"
+        "- **Решение человека:** «давай» | telegram | 20.10.2026\n"
+        "- **Подписал человек:** «давай» | telegram | 20.10.2026\n"
         "- **Раундов без прогресса:** 0\n- **Повторяющийся блокер:** нет\n"
         "- **Запрос составлен:** нет\n- **Отправлен человеком:** нет\n"
     )
@@ -594,10 +598,32 @@ def self_test():
         "| Q1.1 | вопрос | https://a.example/1 01.10.2026 |\n"
         "| Q1.2 | вопрос | https://b.example/2 02.10.2026 |\n"
     )
+    artifact = (
+        "# Артефакт\n\n- **Статус:** показан человеку\n- **Версия:** 1\n"
+        "- **Кто собрал:** агент\n- **Исход проверки:** прошло\n"
+        "- **Текст сообщения человеку (до 80 слов):** Здравствуйте, собрал сводку.\n"
+    )
+    judge = (
+        "# Отчёт судьи\n\n- **Что проверяли:** артефакт\n- **Кто проверял:** другой агент\n"
+        "- **Версия результата:** 1\n- **Итог проверок:** 1 из 9\n\n"
+        "| # | Что проверено | Как | Результат |\n|---|---|---|---|\n"
+        "| 1 | числа | чтение | да |\n\n- **Решение судьи:** показывать\n"
+    )
+    decisions = (
+        "# Решения\n\n| Дата | Решение | На каком основании | Цитата решения | Канал | Когда | Кто решил | Что дальше |\n"
+        "|---|---|---|---|---|---|---|---|\n"
+        "| 20.10.2026 | показать | проверено | «давай» | telegram | 20.10.2026 | Иван | встреча |\n"
+    )
     for root in (ok_root, bad_root):
         open(os.path.join(root, "workspace", "state.md"), "w", encoding="utf-8").write(state)
         open(os.path.join(root, "workspace", "research", "prevalidation-2026-10-20.md"),
              "w", encoding="utf-8").write(report)
+        open(os.path.join(root, "workspace", "artifact.md"), "w", encoding="utf-8").write(artifact)
+        open(os.path.join(root, "workspace", "judge-report-2026-10-20.md"),
+             "w", encoding="utf-8").write(judge)
+        os.makedirs(os.path.join(root, "workspace", "memory"))
+        open(os.path.join(root, "workspace", "memory", "decisions.md"),
+             "w", encoding="utf-8").write(decisions)
     bad_report = os.path.join(bad_root, "workspace", "research", "prevalidation-2026-10-20.md")
     content = open(bad_report, encoding="utf-8").read().replace(":** прошло", ":** ____", 1)
     open(bad_report, "w", encoding="utf-8").write(content)
@@ -609,6 +635,10 @@ def self_test():
                  .replace("Повторяющийся блокер:** нет", "Повторяющийся блокер:** 2 круга"))
     open(os.path.join(esc_root, "workspace", "state.md"), "w", encoding="utf-8").write(esc_state)
 
+    nojudge_root = os.path.join(base, "nojudge")
+    shutil.copytree(ok_root, nojudge_root)
+    os.remove(os.path.join(nojudge_root, "workspace", "judge-report-2026-10-20.md"))
+
     ok_code = subprocess.run([sys.executable, __file__, "--root", ok_root],
                              capture_output=True).returncode
     bad_code = subprocess.run([sys.executable, __file__, "--root", bad_root],
@@ -617,11 +647,17 @@ def self_test():
                              capture_output=True)
     esc_code = esc_run.returncode
     esc_text = esc_run.stdout.decode("utf-8", errors="replace")
-    print("корректный артефакт: код %d (ожидался 0)" % ok_code)
-    print("испорченный артефакт: код %d (ожидался 1)" % bad_code)
+    nj_run = subprocess.run([sys.executable, __file__, "--root", nojudge_root],
+                            capture_output=True)
+    nj_code = nj_run.returncode
+    nj_text = nj_run.stdout.decode("utf-8", errors="replace")
+    print("корректный комплект: код %d (ожидался 0)" % ok_code)
+    print("испорченные ворота: код %d (ожидался 1)" % bad_code)
     print("триггер внешней проверки: код %d (ожидался 1)" % esc_code)
+    print("показ без отчёта судьи: код %d (ожидался 1)" % nj_code)
     shutil.rmtree(base, ignore_errors=True)
-    if ok_code == 0 and bad_code == 1 and esc_code == 1 and "внешней проверки" in esc_text:
+    if (ok_code == 0 and bad_code == 1 and esc_code == 1 and nj_code == 1
+            and "внешней проверки" in esc_text and "судьи" in nj_text):
         print("\nИТОГ: 0 — самопроверка пройдена")
         return 0
     print("\nИТОГ: 2 — самопроверка не пройдена")
