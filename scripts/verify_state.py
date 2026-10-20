@@ -127,8 +127,13 @@ def main(argv=None):
             note = "неактуален, перенос в архив: `python scripts/verify_state.py --move`"
             to_move.append((req_path, None, name))
         elif complete:
-            note = "ответ полный, перенос в архив: `python scripts/verify_state.py --move`"
-            to_move.append((req_path, resp_path, name))
+            status_match = re.search(r"Статус обработки:?\**\s*([^\n]*)", read(resp_path))
+            status_text = status_match.group(1).strip().lower() if status_match else ""
+            if status_text.startswith("принят") or status_text.startswith("отклон"):
+                note = "закрыт, перенос в архив: `python scripts/archive_requests.py`"
+                to_move.append((req_path, resp_path, name))
+            else:
+                note = "ответ полный, но статус обработки не принят — архив после статуса (archive_requests.py)"
         elif resp_path:
             note = "частичный ответ, запрос остаётся в работе"
         else:

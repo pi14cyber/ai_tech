@@ -89,12 +89,18 @@ def main():
 
         if os.path.dirname(path) == REQ_DIR:
             import glob as _glob
-            answers = _glob.glob(os.path.join(RESP_DIR, own + "*.answer.md")) \
-                + _glob.glob(os.path.join(RESP_DIR, "inbox", own + "*.answer.md"))
+            answers = _glob.glob(os.path.join(RESP_DIR, own + ".*")) \
+                + _glob.glob(os.path.join(RESP_DIR, "inbox", own + ".*"))
+            if not answers:
+                problems.append(
+                    "%s: нет пары — заготовка ответа не создана (AGENTS §4: пара до отправки)" % name
+                )
             for answer_path in answers:
+                if not answer_path.endswith(".md"):
+                    continue
                 with open(answer_path, "r", encoding="utf-8", errors="replace") as handle:
                     answer_text = handle.read()
-                status = re.search(r"\*\*Статус обработки:\*\*\s*([^\n]*)", answer_text)
+                status = re.search(r"Статус обработки:?\**\s*([^\n]*)", answer_text)
                 status_text = status.group(1).lower() if status else ""
                 if status_text.startswith("принят") or status_text.startswith("отклон"):
                     problems.append(

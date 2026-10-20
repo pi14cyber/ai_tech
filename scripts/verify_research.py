@@ -40,6 +40,7 @@ ID_RE = re.compile(r"^(?:#{1,6}\s*)?(?:\*\*)?(?:Вопрос\s*)?(?:`)?(Q\d+\.\d
 ANY_ID_RE = re.compile(r"\bQ\d+\.\d+\b")
 OBSOLETE_RE = re.compile(r"^\*\*Статус:\*\*\s*неактуален", re.MULTILINE)
 SECTIONS = ("Факты за", "Факты против", "Белые пятна")
+ALT_SECTIONS = ("Источники", "Алгоритм словами", "Белые пятна")
 WHITE_MARK = "не удалось"
 MAX_QUESTIONS = 6
 
@@ -49,14 +50,16 @@ def read(path):
         return f.read()
 
 
-def find_response(name):
+def find_responses(name):
+    found = []
     for directory in RESP_DIRS:
         if not os.path.isdir(directory):
             continue
         for candidate in sorted(os.listdir(directory)):
-            if candidate.startswith(name) and candidate.endswith(".md"):
-                return os.path.join(directory, candidate)
-    return None
+            if candidate == name + ".answer.md" or candidate.startswith(name + "."):
+                if candidate.endswith(".md"):
+                    found.append(os.path.join(directory, candidate))
+    return found
 
 
 def blocks(text, ids):
@@ -118,10 +121,20 @@ def main():
                 )
 
             base = name[:-3]
-            resp_path = find_response(base)
-            if not resp_path:
+            resp_paths = find_responses(base)
+            if not resp_paths:
                 waiting.append("%s: вопросов %d, ответа нет" % (name, len(req_ids)))
                 continue
+            if "быстрая" in req_text and len(req_ids) > 5 and os.path.dirname(req_path) != ARCH_DIR:
+                problems.append("%s: категория «быстрая», а вопросов %d — короткий предел пять"
+                                % (name, len(req_ids)))
+            if "дип" in req_text and len(resp_paths) < 2:
+                if os.path.dirname(req_path) == ARCH_DIR:
+                    waiting.append("%s: «дип» с одним файлом ответа — старый формат, второй канал не подтверждён" % name)
+                else:
+                    problems.append("%s: категория «дип», а файлов ответов %d — нужно два независимых канала"
+                                    % (name, len(resp_paths)))
+            resp_path = resp_paths[0]
 
             resp_text = read(resp_path)
             resp_ids = list(dict.fromkeys([m.group(1) for m in ID_RE.finditer(resp_text)]))
@@ -141,11 +154,13 @@ def main():
                     "%s: идентификаторы без вопроса в запросе: %s"
                     % (os.path.basename(resp_path), ", ".join(extra))
                 )
-            for section in SECTIONS:
-                if section not in resp_text:
-                    problems.append(
-                        "%s: нет обязательного раздела «%s»" % (os.path.basename(resp_path), section)
-                    )
+            has_classic = all(section in resp_text for section in SECTIONS)
+            has_alt = all(section in resp_text for section in ALT_SECTIONS)
+            if not (has_classic or has_alt):
+                problems.append(
+                    "%s: нет ни классических разделов (Факты за / против / Белые пятна), "
+                    "ни новых (Источники / Алгоритм словами / Белые пятна)" % os.path.basename(resp_path)
+                )
             for qid in [q for q in req_ids if q in resp_ids]:
                 body = bl.get(qid, "")
                 if "http" not in body and WHITE_MARK not in body.lower():

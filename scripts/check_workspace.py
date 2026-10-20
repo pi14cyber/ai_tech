@@ -229,7 +229,8 @@ def main():
 
         # Внешняя проверка: счётчики триггера против порогов канона
         thresholds = load_escalation()
-        for key in ("Раундов без прогресса", "Повторяющийся блокер", "Запрос составлен", "Отправлен человеком"):
+        for key in ("Раундов без прогресса", "Повторяющийся блокер", "Регрессий от последней правки",
+                    "Открытых вопросов без источника", "Запрос составлен", "Отправлен человеком"):
             if field(content, key) is None:
                 problems.append("state.md — не заполнен блок «Внешняя проверка»: «%s»" % key)
 
@@ -244,8 +245,12 @@ def main():
         regressions = counter("Регрессий от последней правки")
         unknowns = counter("Открытых вопросов без источника")
         blocker = field(content, "Повторяющийся блокер") or ""
-        blocker_rounds_match = re.search(r"(\d+)\s*(круг|раунд|раз)", blocker.lower())
-        blocker_rounds = int(blocker_rounds_match.group(1)) if blocker_rounds_match else 0
+        lowered_blocker = blocker.lower()
+        if "нет" in lowered_blocker:
+            blocker_rounds = 0
+        else:
+            digits = re.search(r"\d+", lowered_blocker)
+            blocker_rounds = int(digits.group(0)) if digits else 0
         triggered = (rounds >= thresholds["attempts_without_progress"]
                      or regressions >= thresholds["regressions_limit"]
                      or unknowns >= thresholds["unknowns_without_source"]
@@ -412,12 +417,22 @@ def main():
             if not stripped.startswith("|") or "---" in stripped:
                 continue
             cells = [cell.strip() for cell in stripped.strip("|").split("|")]
-            if any("Результат" in cell for cell in cells) or not cells or not cells[0]:
+            if any(cell in ("Результат", "Итог", "#") for cell in cells):
                 continue
             if len(cells) >= 2 and cells[-1]:
                 result_rows.append(stripped)
-        if "Результат" in content and not result_rows:
-            problems.append("%s — ни одной заполненной строки результатов проверки: колонка «Результат» пуста" % name)
+        summary = re.search(r"Итог проверок[^\n]*?(\d+)\s*из\s*(\d+)", content)
+        if summary is None:
+            problems.append("%s — нет строки «Итог проверок: N из M» с числами" % name)
+        else:
+            done, declared = int(summary.group(1)), int(summary.group(2))
+            if done < 1:
+                problems.append("%s — «Итог проверок: 0 из %d»: ни одной проверки не выполнено" % (name, declared))
+            if declared < 9:
+                problems.append("%s — «Итог проверок: … из %d»: в форме девять проверок, а объявлено меньше" % (name, declared))
+            if done != len(result_rows):
+                problems.append("%s — «Итог проверок: %d из %d», а заполненных строк результатов %d: число не совпадает"
+                                % (name, done, declared, len(result_rows)))
 
     audit_path = os.path.join(WS, "audit-log.md")
     open_findings = []
@@ -519,7 +534,7 @@ def main():
                     ok = True
             if not ok:
                 problems.append("artifact.md — статус «показан человеку», но нет отчёта судьи с решением «показывать»")
-        artifact_version = field(content, "Версия")
+        artifact_version = field(content, "Версия результата") or field(content, "Версия")
         artifact_author = field(content, "Кто собрал")
         artifact_outcome = field(content, "Исход проверки")
         if artifact_outcome is None:
