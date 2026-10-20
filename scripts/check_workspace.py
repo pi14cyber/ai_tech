@@ -443,10 +443,24 @@ def main():
             if who and quote and channel and when:
                 decisions_signed = True
 
+    artifacts_dir = os.path.join(WS, "artifacts")
+    if os.path.isdir(artifacts_dir):
+        for path in sorted(glob.glob(os.path.join(artifacts_dir, "**", "*.md"), recursive=True)):
+            checked += 1
+            body = read(path)
+            if "показан человеку" in body.lower():
+                problems.append("artifacts/%s — статус «показан человеку» в отдельном файле; "
+                                "единственный носитель статуса и версии — workspace/artifact.md"
+                                % os.path.basename(path))
+
     artifact_path = os.path.join(WS, "artifact.md")
     if os.path.exists(artifact_path):
         checked += 1
         content = read(artifact_path)
+        if report_outcomes and any(outcome != "прошло" for _name, outcome in report_outcomes):
+            bad = sorted({outcome for _name, outcome in report_outcomes if outcome != "прошло"})
+            problems.append("artifact.md — артефакт собран при исходе отчёта ворот «%s»: сборка запрещена"
+                            % ", ".join(bad))
         if "Показан человеку" in content:
             problems.append("artifact.md — статус с заглавной буквы: не из словаря")
         status = field(content, "Статус")
