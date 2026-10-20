@@ -77,7 +77,8 @@ def read(path):
 
 
 def field(content, key):
-    match = re.search(r"%s[^\n:]*:\s*(.+)" % re.escape(key), content)
+    pattern = r"(?<![А-Яа-яЁё])" + re.escape(key) + r"\**\s*:\**\s*(.+)"
+    match = re.search(pattern, content)
     if not match:
         return None
     value = match.group(1).strip().strip("*` ")
@@ -113,6 +114,7 @@ def main():
     state_version = None
     state_decision = None
     state_ready = None
+    state_gate = None
     judge_checker = None
     judge_version = None
     report_outcomes = []
@@ -157,6 +159,7 @@ def main():
             if len(re.findall(re.escape(key) + r"[^\n:]*:", content)) > 1:
                 problems.append("state.md — поле «%s» встречается больше одного раза" % key)
         gate_value = outcome_of(gate) if gate is not None else None
+        state_gate = gate_value
         if gate is not None and gate_value is None:
             problems.append("state.md — исход ворот «%s» не из словаря" % gate)
         if gate_value == "прошло" and not glob.glob(os.path.join(WS, "research", "prevalidation-*.md")):
@@ -222,10 +225,22 @@ def main():
                 fact_lines = [line for line in content.splitlines()
                               if re.search(r"Q\d+\.\d+", line) and "http" in line
                               and re.search(r"\d{2}\.\d{2}\.\d{4}", line)]
+                packet_match = re.search(r"Пакет:\s*(\d+)\s*из", content)
+                packet_number = int(packet_match.group(1)) if packet_match else None
+                if packet_number is not None:
+                    wrong = [line for line in fact_lines
+                             if re.search(r"Q(\d+)\.[0-9]+", line)
+                             and int(re.search(r"Q(\d+)\.[0-9]+", line).group(1)) != packet_number]
+                    if wrong:
+                        problems.append("%s — строки Q не из пакета %d: %s"
+                                        % (name, packet_number, wrong[0].strip()[:40]))
                 if len(fact_lines) < 2:
                     problems.append("%s — при исходе «прошло» нужно не меньше двух строк Q с адресом и датой (найдено %d)"
                                     % (name, len(fact_lines)))
                 else:
+                    ids = [re.search(r"Q\d+\.\d+", line).group(0) for line in fact_lines]
+                    if len(set(ids)) < 2:
+                        problems.append("%s — два факта с одинаковым номером Q: нужны два разных вопроса" % name)
                     for fact in fact_lines:
                         if not re.search(r"https?://\S+", fact):
                             problems.append("%s — в строке Q нет адреса" % name)
@@ -241,8 +256,15 @@ def main():
                                             % (name, os.path.basename(response)))
                 if "дип" in content and len(responses) < 2:
                     problems.append("%s — полный запрос, а файлов ответов %d (нужно два)" % (name, len(responses)))
+        if report_outcomes and state_gate == "прошло" and any(o != "прошло" for _n, o in report_outcomes):
+            problems.append("state.md — исход ворот «прошло», а в отчёте ворот есть «%s»: сборка запрещена"
+                            % ", ".join(sorted({o for _n, o in report_outcomes if o != "прошло"})))
         if "Пакет" not in content:
             problems.append("%s — нет поля «Пакет: N из M»" % name)
+        if not re.search(r"Пакет\**\s*:\**\s*\d+\s*из\s*\d+", content):
+            problems.append("%s — поле пакета должно быть «Пакет: N из M» с числами" % name)
+        if outcome is not None and outcome_of(outcome) is not None:
+            report_outcomes.append((name, outcome_of(outcome)))
         category_line = re.search(r"Категория запуска:[^\n]*", content)
         if category_line and "/" not in category_line.group(0) and "дип" in category_line.group(0):
             if len(responses) < 2:
@@ -254,6 +276,12 @@ def main():
         content = read(report)
         decision_raw = field(content, "Решение судьи")
         normalized = (decision_raw or "").lower().strip(" .")
+        if re.search(r"показывать\s+(нельзя|не|нет)", normalized):
+            problems.append("%s — решение «%s» не распознано как «показывать» или «не показывать»" % (name, decision_raw))
+        if decision_raw is not None and len(re.findall(r"Решение судьи", content)) > 1:
+            problems.append("%s — поле «Решение судьи» встречается больше одного раза" % name)
+        if judge_checker is None:
+            problems.append("%s — не заполнено «Кто проверял»: независимость судьи не доказана" % name)
         if "не показывать" in normalized:
             pass
         elif not normalized.startswith("показывать"):
@@ -280,12 +308,15 @@ def main():
             if not stripped.startswith("|") or "---" in stripped:
                 continue
             cells = [cell.strip() for cell in stripped.strip("|").split("|")]
-            if len(cells) >= 2 and cells[-1] and cells[0] not in ("#", ""):
+            if any("Результат" in cell for cell in cells) or not cells or not cells[0]:
+                continue
+            if len(cells) >= 2 and cells[-1]:
                 result_rows.append(stripped)
         if "Результат" in content and not result_rows:
             problems.append("%s — ни одной заполненной строки результатов проверки: колонка «Результат» пуста" % name)
 
     audit_path = os.path.join(WS, "audit-log.md")
+    open_findings = []
     if os.path.exists(audit_path):
         checked += 1
         for number, line in enumerate(read(audit_path).splitlines(), 1):
@@ -302,6 +333,8 @@ def main():
                 problems.append("audit-log.md:%d — класс «%s» не из A/B/C/D" % (number, cells[3]))
             if cells[3] in ("A", "B") and len(cells) > 4 and not cells[4]:
                 problems.append("audit-log.md:%d — класс %s без адреса «Где (файл:строка)»" % (number, cells[3]))
+            if cells[5] in ("найдено", "предложено"):
+                open_findings.append(number)
             if cells[5] not in FINDING:
                 problems.append("audit-log.md:%d — статус «%s» не из словаря" % (number, cells[5]))
             if cells[5] == "проверено":
@@ -331,6 +364,11 @@ def main():
             problems.append("artifact.md — статус с заглавной буквы: не из словаря")
         status = field(content, "Статус")
         if status and "показан человеку" in status.lower():
+            if not os.path.exists(state_path):
+                problems.append("artifact.md — статус «показан человеку», а состояния нет: сверять не с чем")
+            if open_findings:
+                problems.append("artifact.md — артефакт показан, но в журнале находок есть открытые (%d): показ запрещён"
+                                % len(open_findings))
             if state_ready is None or state_ready != "да":
                 problems.append("artifact.md — статус «показан человеку», а «Готов к показу» в состоянии не «да»")
             judges = glob.glob(os.path.join(WS, "judge-report-*.md"))
@@ -360,6 +398,8 @@ def main():
             checker_key = re.sub(r"\([^)]*\)", "", judge_checker.lower()).strip()
             same = author_key == checker_key
             if not same and "агент" in author_key and "агент" in checker_key and "другой" not in checker_key:
+                same = True
+            if checker_key in ("сам", "сама", "сам автор", "автор", "я") or author_key in ("сам", "сама", "я"):
                 same = True
             if same:
                 problems.append("artifact.md — судья и автор совпадают: нужен другой проход (человек или другой агент)")
@@ -392,12 +432,12 @@ def self_test():
     state = (
         "# Состояние\n\n"
         "- **Текущий шаг:** артефакт\n- **Что дальше (один шаг):** ворота\n"
-        "- **Режим:** обычный\n- **Задано вопросов в сессии:** 4\n"
+        "- **Режим:** обычный\n- **Задано вопросов:** 4\n"
         "- **Номер сессии:** 1\n"
         "- **Контур:** внешний\n- **Исход ворот:** прошло\n"
     )
     report = (
-        "# Отчёт предвалидации\n\n- **Исход ворот — вписать одно значение:** прошло\n"
+        "# Отчёт предвалидации\n\n- **Исход ворот:** прошло\n"
         "- **Пакет:** 1 из 1\n\n"
         "| Q | Вопрос | Ссылок |\n|---|---|---|\n"
         "| Q1.1 | вопрос | https://a.example/1 01.10.2026 |\n"
