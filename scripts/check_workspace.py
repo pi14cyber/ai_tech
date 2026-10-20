@@ -46,6 +46,7 @@ STEP_VOCAB = ("онбординг", "замер", "выбор поля", "гип
 MODE_VOCAB = ("обычный", "только локально")
 CONTOUR_VOCAB = ("внешний", "внутренний")
 READY_VOCAB = ("да", "нет")
+ARTIFACT_VOCAB = ("черновик", "показан человеку", "есть обязательство")
 OUTCOMES_ORDER = ("не запускалось", "не прошло", "заблокировано", "прошло")
 LIMITS = {"first": 5, "later": 3}
 
@@ -118,6 +119,7 @@ def main():
     state_signature = None
     judge_checker = None
     judge_version = None
+    judge_authorizes_artifact = False
     report_outcomes = []
 
     state_path = os.path.join(WS, "state.md")
@@ -176,13 +178,24 @@ def main():
         decision_field = field(content, "Решение судьи")
         if decision_field is not None:
             lowered_decision = decision_field.lower()
-            if "не показывать" in lowered_decision:
+            if re.search(r"показывать\s+(нельзя|не|нет)", lowered_decision):
+                problems.append("state.md — решение «%s» читается как запрет, а не как разрешение" % decision_field)
+                state_decision = "не показывать"
+            elif "не показывать" in lowered_decision:
                 state_decision = "не показывать"
             elif lowered_decision.strip(" .").startswith("показывать"):
                 state_decision = "показывать"
         signature = field(content, "Подписал человек")
         if signature is not None:
-            state_signature = signature
+            lowered_signature = signature.lower()
+            weak = lowered_signature.strip(" .—-") in ("", "нет", "да", "ок", "—", "-") \
+                or "не ответил" in lowered_signature or "агент" in lowered_signature
+            if weak:
+                problems.append("state.md — подпись человека «%s» не является цитатой согласия" % signature)
+            elif not re.search(r"\d{2}\.\d{2}\.\d{4}", signature) or "|" not in signature:
+                problems.append("state.md — в подписи должны быть цитата | канал | дата (дд.мм.гггг)")
+            else:
+                state_signature = signature
         ready = field(content, "Готов к показу")
         if ready is not None:
             head = ready.strip().split()[0].strip(".,:;—-").lower()
@@ -293,12 +306,16 @@ def main():
             problems.append("%s — нет строгого решения судьи «показывать» или «не показывать»" % name)
         version = field(content, "Версия результата")
         judge_version = version
+        what = (field(content, "Что проверяли") or "").lower()
+        if "показывать" in normalized and "не показывать" not in normalized and "артефакт" in what:
+            judge_authorizes_artifact = True
         if version is not None and not version.strip().isdigit():
             problems.append("%s — версия «%s» не число: сравнение версий невозможно" % (name, version))
         if version is None:
             problems.append("%s — нет привязки к версии результата" % name)
         else:
-            if state_version is not None and version.strip() != state_version.strip():
+            if state_version is not None and version.strip().isdigit() and state_version.strip().isdigit() \
+                    and int(version) != int(state_version):
                 problems.append("%s — версия результата %s не совпадает с состоянием %s"
                                 % (name, version.strip(), state_version.strip()))
         if "Итог проверок" not in content:
@@ -379,7 +396,12 @@ def main():
         if "Показан человеку" in content:
             problems.append("artifact.md — статус с заглавной буквы: не из словаря")
         status = field(content, "Статус")
-        if status and "показан человеку" in status.lower():
+        if status is not None:
+            status_key = status.strip().lower().strip(" .")
+            if status_key not in ARTIFACT_VOCAB:
+                problems.append("artifact.md — статус «%s» не из словаря (черновик / показан человеку / есть обязательство)"
+                                % status)
+        if status is not None and status.strip().lower().strip(" .") == "показан человеку":
             if not os.path.exists(state_path):
                 problems.append("artifact.md — статус «показан человеку», а состояния нет: сверять не с чем")
             if open_findings:
@@ -389,9 +411,8 @@ def main():
                 problems.append("artifact.md — статус «показан человеку», а «Готов к показу» в состоянии не «да»")
             if state_signature is None:
                 problems.append("artifact.md — артефакт показан без подписи человека в состоянии: показ не разрешён")
-            if not decisions_signed:
-                problems.append("artifact.md — артефакт показан, а в журнале решений нет подписи человека "
-                                "(цитата, канал, дата)")
+            if not judge_authorizes_artifact and glob.glob(os.path.join(WS, "judge-report-*.md")):
+                problems.append("artifact.md — отчёт судьи не про артефакт: он не разрешает показ артефакта")
             judges = glob.glob(os.path.join(WS, "judge-report-*.md"))
             ok = False
             for judge in judges:
