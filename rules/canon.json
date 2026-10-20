@@ -19,14 +19,15 @@
     ["Структура описана", "verify_structure.py"]
   ],
   "limits_patterns": {
-    "questions_first_session": "пять вопросов|5 вопросов",
+    "questions_first_session": "пять вопросов|5 вопросов|5 в первой",
+    "questions_later": "не больше трёх|3 в последующих|трёх в последующих|дальше три",
     "questions_per_packet": "шесть вопросов|6 вопросов",
     "short_request_max": "пять|5",
     "short_request_min": "3–5|3-5|три",
     "answer_words_full": "2500",
     "answer_words_short": "1200",
     "timebox_hours": "четыр[её]х часов|четыре часа|4 часа",
-    "reworks": "два раза|2 раза|больше двух",
+    "reworks": "два раза|2 раза|больше двух|двух раз|две переделки|второго круга",
     "message_words": "80 слов|до 80",
     "touches_per_week": "десять|10",
     "silence_hours": "72",
@@ -81,16 +82,16 @@
     "contour": ["внешний", "внутренний"]
   },
   "limits_where": {
-    "questions_first_session": ["AGENTS.md"],
-    "questions_later": ["AGENTS.md"],
+    "questions_first_session": ["AGENTS.md", "START.md", "METHODOLOGY.md", "skills/00-onboarding-interview/SKILL.md", "templates/state.md"],
+    "questions_later": ["AGENTS.md", "START.md", "METHODOLOGY.md", "skills/00-onboarding-interview/SKILL.md", "templates/state.md"],
     "questions_per_packet": ["AGENTS.md", "skills/03-prevalidation/SKILL.md"],
     "short_request_min": ["AGENTS.md"],
     "short_request_max": ["AGENTS.md"],
     "full_request_max": ["AGENTS.md"],
     "answer_words_full": ["AGENTS.md"],
     "answer_words_short": ["skills/03-prevalidation/SKILL.md"],
-    "timebox_hours": ["AGENTS.md", "skills/04-mvp-artifact/SKILL.md", "templates/artifact.md"],
-    "reworks": ["AGENTS.md", "skills/04-mvp-artifact/SKILL.md"],
+    "timebox_hours": ["AGENTS.md", "skills/04-mvp-artifact/SKILL.md", "templates/artifact.md", "GLOSSARY.md", "METHODOLOGY.md"],
+    "reworks": ["AGENTS.md", "skills/04-mvp-artifact/SKILL.md", "templates/artifact.md", "GLOSSARY.md", "METHODOLOGY.md"],
     "message_words": ["skills/04-mvp-artifact/SKILL.md"],
     "touches_per_week": ["skills/06-access/SKILL.md", "templates/access-log.md"],
     "silence_hours": ["skills/06-access/SKILL.md", "templates/access-log.md"],
@@ -116,7 +117,10 @@
     "packets": "нумераци[аия] (от|с) `Q1\\.1`",
     "stop_canon": "Канон — шесть условий",
     "escalation": "Внешняя проверка: автоматический триггер",
-    "sources": "источники и алгоритмы, не код"
+    "sources": "источники и алгоритмы, не код",
+    "contour": "Контур задаёт, чем подтверждают",
+    "signature": "Подпись человека — единственное, что агент не ставит сам",
+    "version": "Версия результата — одна строка в одном файле"
   },
   "required": {
     "skills/INDEX.md": ["state.md", "m2-work-router"],

@@ -58,4 +58,9 @@
 
 ## Пара «запрос — ответ»
 
-Заготовка ответа копируется под конкретный запрос **вместе с ним**: `templates/request-short.md`/`request-full.md` → `workspace/requests/<id>.md`; `templates/response-short.md`/`response-full.md` → `workspace/responses/<id>.answer.md`. Полный порядок (триггер → отправка → разбор → архив) — один канон: `skills/m4-external-check`, раздел «Полный пайплайн запроса».
+Заготовка ответа копируется под конкретный запрос **вместе с ним**; пар две — у человека и у проекта (канон — `AGENTS.md`, раздел 4):
+
+- у человека: `templates/request-short.md`/`request-full.md` → `workspace/requests/<id>.md`; `templates/response-short.md`/`response-full.md` → `workspace/responses/<id>.answer.md`;
+- у проекта: та же пара в его внутренней папке запросов и ответов (пути — `AGENTS.md`, раздел 4).
+
+Полный порядок (триггер → отправка → разбор → архив) — один канон: `skills/m4-external-check`, раздел «Полный пайплайн запроса».

@@ -166,6 +166,11 @@ def main():
     require("skills/05-validation-gate/SKILL.md", rules["gate_single"])
     require("skills/03-prevalidation/SKILL.md", rules["packets"])
     require("skills/00-onboarding-interview/SKILL.md", rules["stop_canon"])
+    require("AGENTS.md", rules["contour"])
+    require("AGENTS.md", rules["signature"])
+    require("AGENTS.md", rules["version"])
+    require("GLOSSARY.md", "канон — `AGENTS.md`")
+    require("templates/state.md", "Версия результата")
 
     outcomes = canon["statuses"]["outcomes"]
     for name in ("skills/03-prevalidation/SKILL.md", "skills/04-mvp-artifact/SKILL.md",
